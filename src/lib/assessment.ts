@@ -56,39 +56,57 @@ export function glCategoryOf(gl: number | null): GlCategory {
 
 const SIGNAL_HEADLINE: Record<GesamtsignalStatus, string> = {
   gruen: 'Gesamtsignal: unauffällig',
-  gelb: 'Gesamtsignal: teilweise auffällig',
-  rot: 'Gesamtsignal: mehrfach auffällig',
+  gelb: 'Gesamtsignal: mittel',
+  rot: 'Gesamtsignal: auffällig',
   unvollstaendig: 'Gesamtsignal: unvollständige Datenlage',
 }
 
+/** Score einer Status-Kategorie für die Gesamtsignal-Aggregation (0 = unauffällig … 2 = hoch/auffällig). */
+function categoryScore(category: GiCategory | GlCategory): number {
+  if (category === 'mittel') return 1
+  if (category === 'hoch') return 2
+  return 0
+}
+
 /**
- * Kombiniertes Gesamtsignal aus NOVA-Verarbeitungsgrad, glykämischer Last
- * und Omega-6/3-Einordnung. Wird aus den jeweils bekannten Kriterien
- * berechnet – fehlt eines (z. B. keine Omega-Einordnung möglich), zählt es
- * weder als gut noch als schlecht, sondern wird einfach ausgeklammert
- * ("signalIncomplete"). "Unvollständige Datenlage" gibt es nur noch, wenn
- * KEIN einziges Kriterium bekannt ist. Die Spezifikation nennt nur "NOVA 4
- * UND (GL hoch ODER Omega ungünstig)" für Rot; den Fall zweier schlechter
- * Kriterien ohne NOVA 4 lässt sie offen – hier gilt daher allgemein
- * (relativ zur Anzahl bekannter Kriterien): zwei oder mehr schlechte
- * Kriterien = Rot, genau eines = Gelb, keines = Grün.
+ * Gesamtsignal nach der Weight-Set-Point-Bewertung: GI und GL sind die
+ * primären, schwellenwertbasierten Signale (die jeweils strengere der
+ * beiden Einstufungen bildet die Basis). NOVA, das Ballaststoff-Verhältnis
+ * und Omega-6/3 sind reine Modifikatoren – sie können die Basis-Einstufung
+ * nur verschlechtern oder gleich lassen, nie verbessern. Ein unbekannter
+ * Omega-Wert fließt dabei bewusst NICHT als neutraler/positiver Wert ein,
+ * sondern wird komplett aus der Rechnung ausgeklammert. "Unvollständige
+ * Datenlage" gibt es nur, wenn wirklich kein einziges der drei Kriterien
+ * (GI/GL, NOVA, Omega-6/3) bekannt ist.
  */
 function signalOf(
-  nova: NovaGroup | null,
+  giCategory: GiCategory,
   glCategory: GlCategory,
+  nova: NovaGroup | null,
   omegaCategory: OmegaCategory,
+  ballaststoffRatio: number | null,
 ): { status: GesamtsignalStatus; incomplete: boolean } {
-  const known: boolean[] = []
-  if (nova !== null) known.push(nova === 4)
-  if (glCategory !== 'n/a') known.push(glCategory === 'hoch')
-  if (omegaCategory !== 'unbekannt') known.push(omegaCategory === 'unguenstig')
+  const giGlKnown = giCategory !== 'n/a' || glCategory !== 'n/a'
+  const novaKnown = nova !== null
+  const omegaKnown = omegaCategory !== 'unbekannt'
 
-  if (known.length === 0) return { status: 'unvollstaendig', incomplete: true }
+  if (!giGlKnown && !novaKnown && !omegaKnown) {
+    return { status: 'unvollstaendig', incomplete: true }
+  }
 
-  const badCount = known.filter(Boolean).length
-  const incomplete = known.length < 3
-  if (badCount >= 2) return { status: 'rot', incomplete }
-  if (badCount === 1) return { status: 'gelb', incomplete }
+  const basisScore = Math.max(categoryScore(giCategory), categoryScore(glCategory))
+
+  const auffaellig = giCategory === 'hoch' || glCategory === 'hoch'
+  const verstaerkung = ballaststoffRatio !== null && ballaststoffRatio < 0.1 && auffaellig ? 1 : 0
+
+  const novaModifikator = nova === 4 ? 1 : 0
+  const omegaModifikator = omegaCategory === 'unguenstig' ? 1 : 0
+
+  const gesamtScore = basisScore + verstaerkung + novaModifikator + omegaModifikator
+  const incomplete = !giGlKnown || !novaKnown || !omegaKnown
+
+  if (gesamtScore >= 2) return { status: 'rot', incomplete }
+  if (gesamtScore === 1) return { status: 'gelb', incomplete }
   return { status: 'gruen', incomplete }
 }
 
@@ -97,42 +115,66 @@ export function assessFood(food: AssessableFood): Assessment {
   const glValue = glycemicLoad(food)
   const glCategory = glCategoryOf(glValue)
   const omegaCategory = food.omega.category
-  const { status: signal, incomplete: signalIncomplete } = signalOf(food.nova, glCategory, omegaCategory)
+  const ballaststoffRatio =
+    food.carbsPer100g > 0 && food.fiberPer100g !== undefined ? food.fiberPer100g / food.carbsPer100g : null
+  const { status: signal, incomplete: signalIncomplete } = signalOf(
+    giCategory,
+    glCategory,
+    food.nova,
+    omegaCategory,
+    ballaststoffRatio,
+  )
 
+  const verstaerkungAktiv =
+    ballaststoffRatio !== null && ballaststoffRatio < 0.1 && (giCategory === 'hoch' || glCategory === 'hoch')
+
+  // Begründung folgt der neuen Hierarchie: GI/GL zuerst als Hauptgrund, danach
+  // die Modifikatoren Ballaststoff-Verhältnis, NOVA und Omega-6/3.
   const reasoning: string[] = []
 
-  if (food.nova === null) {
-    reasoning.push('NOVA-Verarbeitungsgrad für dieses Produkt nicht bekannt.')
-  } else if (food.nova === 4) {
-    reasoning.push(
-      'Ultra-verarbeitet (NOVA 4): industrielle Formulierung, die Sättigungssignale abschwächen kann.',
-    )
-  } else {
-    reasoning.push(`NOVA-Gruppe ${food.nova}: ${novaLabel(food.nova)}.`)
-  }
-
-  if (glCategory === 'n/a') {
+  if (giCategory === 'n/a') {
     reasoning.push(
       food.gi === null
         ? 'GI/GL für dieses Produkt nicht verfügbar.'
         : 'Keine relevante Kohlenhydratmenge, daher kaum Einfluss auf Blutzucker/Insulin.',
     )
-  } else if (glCategory === 'niedrig') {
-    reasoning.push('Niedrige glykämische Last der Portion – moderater Blutzucker-/Insulinanstieg.')
-  } else if (glCategory === 'mittel') {
-    reasoning.push('Mittlere glykämische Last der Portion – spürbarer, aber begrenzter Blutzuckeranstieg.')
+  } else if (giCategory === 'hoch') {
+    reasoning.push(`Hoher glykämischer Index (${food.gi}) — Hauptgrund für die Einstufung.`)
+  } else if (giCategory === 'mittel') {
+    reasoning.push(`Mittlerer glykämischer Index (${food.gi}).`)
   } else {
-    reasoning.push('Hohe glykämische Last der Portion – deutlicher Blutzucker-/Insulinanstieg möglich.')
+    reasoning.push(`Niedriger glykämischer Index (${food.gi}).`)
+  }
+
+  if (glCategory !== 'n/a') {
+    const glStatusLabel = glCategory === 'hoch' ? 'auffällig' : glCategory === 'mittel' ? 'mittel' : 'unauffällig'
+    reasoning.push(
+      `Glykämische Last bei realistischer Portion (${food.portionG} g): ${glValue?.toFixed(1)} — ${glStatusLabel}.`,
+    )
+  }
+
+  if (verstaerkungAktiv && ballaststoffRatio !== null) {
+    reasoning.push(
+      `Niedriges Ballaststoff-Verhältnis (${Math.round(ballaststoffRatio * 100)} %) verstärkt die Einstufung.`,
+    )
+  }
+
+  if (food.nova === null) {
+    reasoning.push('NOVA-Verarbeitungsgrad für dieses Produkt nicht bekannt.')
+  } else if (food.nova === 4) {
+    reasoning.push('NOVA-Gruppe 4 (ultra-verarbeitet): zusätzlicher Malus auf das Gesamtsignal.')
+  } else {
+    reasoning.push(`NOVA-Gruppe ${food.nova}: ${novaLabel(food.nova)} — leichter Zusatzfaktor, nicht ausschlaggebend.`)
   }
 
   if (omegaCategory === 'unbekannt') {
-    reasoning.push('Keine Omega-6/3-Einordnung verfügbar.')
+    reasoning.push('Omega-6/3-Verhältnis unbekannt — fließt nicht in die Bewertung ein.')
   } else if (food.omega.isWalnutSpecialCase) {
     reasoning.push('Enthält reichlich Omega-3 UND Omega-6 – Sonderfall, nicht pauschal bewertet.')
   } else if (omegaCategory === 'guenstig') {
     reasoning.push('Günstiges Omega-6/3-Verhältnis laut Kategorie-Zuordnung.')
   } else if (omegaCategory === 'unguenstig') {
-    reasoning.push('Ungünstiges Omega-6/3-Verhältnis laut Kategorie-/Zutaten-Zuordnung.')
+    reasoning.push('Ungünstiges Omega-6/3-Verhältnis laut Kategorie-/Zutaten-Zuordnung — zusätzlicher Malus.')
   } else {
     reasoning.push('Neutrale Omega-6/3-Einordnung.')
   }
@@ -141,16 +183,13 @@ export function assessFood(food: AssessableFood): Assessment {
     reasoning.push('Herkunft (Weide vs. Mast) nicht bekannt – Einordnung kann abweichen.')
   }
 
-  if ((food.fiberPer100g ?? 0) >= 5) {
-    reasoning.push('Hoher Ballaststoffgehalt bremst die Verdauung und unterstützt die Sättigung.')
-  }
   if ((food.proteinPer100g ?? 0) >= 15) {
     reasoning.push('Guter Proteingehalt unterstützt Sättigung und dämpft den Blutzuckeranstieg der Mahlzeit.')
   }
 
   if (signalIncomplete && signal !== 'unvollstaendig') {
     reasoning.push(
-      'Gesamtsignal basiert nur auf den bekannten Kriterien – nicht alle drei Werte (NOVA, GL, Omega-6/3) liegen für dieses Produkt vor.',
+      'Gesamtsignal basiert nur auf den bekannten Kriterien – nicht alle drei Werte (GI/GL, NOVA, Omega-6/3) liegen für dieses Produkt vor.',
     )
   }
 

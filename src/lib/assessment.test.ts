@@ -17,18 +17,18 @@ function baseFood(overrides: Partial<AssessableFood>): AssessableFood {
   }
 }
 
-describe('assessFood – Gesamtsignal', () => {
-  it('ist grün, wenn NOVA, GL und Omega alle unauffällig sind', () => {
+describe('assessFood – Gesamtsignal (Weight-Set-Point-Bewertung)', () => {
+  it('ist grün, wenn GI/GL niedrig sind und NOVA/Omega unauffällig', () => {
     const food = baseFood({ nova: 1, gi: 30, carbsPer100g: 10, portionG: 100, omega: omega('guenstig') })
     expect(assessFood(food).signal).toBe('gruen')
   })
 
-  it('ist gelb, wenn genau ein Kriterium schlecht ist (nur NOVA 4)', () => {
+  it('ist gelb, wenn nur NOVA 4 als Modifikator dazukommt (GI/GL niedrig)', () => {
     const food = baseFood({ nova: 4, gi: 30, carbsPer100g: 10, portionG: 100, omega: omega('guenstig') })
     expect(assessFood(food).signal).toBe('gelb')
   })
 
-  it('ist rot, wenn NOVA 4 UND hohe GL zusammentreffen (Spezifikationsfall)', () => {
+  it('ist rot, wenn NOVA 4 UND hohe GL zusammentreffen', () => {
     const food = baseFood({ nova: 4, gi: 90, carbsPer100g: 50, portionG: 100, omega: omega('guenstig') })
     expect(assessFood(food).glCategory).toBe('hoch')
     expect(assessFood(food).signal).toBe('rot')
@@ -46,7 +46,7 @@ describe('assessFood – Gesamtsignal', () => {
     expect(result.signalIncomplete).toBe(true)
   })
 
-  it('wird trotz fehlender Omega-Einordnung aus NOVA+GL berechnet', () => {
+  it('wird trotz fehlender Omega-Einordnung aus GI/GL+NOVA berechnet', () => {
     const food = baseFood({ nova: 4, gi: 90, carbsPer100g: 50, portionG: 100, omega: omega('unbekannt') })
     const result = assessFood(food)
     expect(result.signal).toBe('rot')
@@ -65,5 +65,45 @@ describe('assessFood – Gesamtsignal', () => {
     const result = assessFood(food)
     expect(result.signal).toBe('unvollstaendig')
     expect(result.signalIncomplete).toBe(true)
+  })
+
+  it('GI allein bestimmt bereits die Basis-Einstufung, auch wenn die GL (kleine Portion) niedriger ausfällt', () => {
+    // GI 70 (hoch) bei sehr geringer Kohlenhydratmenge/Portion -> GL bleibt niedrig, GI bleibt primär.
+    const food = baseFood({ gi: 70, carbsPer100g: 5, portionG: 20, nova: 1, omega: omega('guenstig') })
+    const result = assessFood(food)
+    expect(result.giCategory).toBe('hoch')
+    expect(result.glCategory).toBe('niedrig')
+    expect(result.signal).not.toBe('gruen')
+  })
+
+  it('NOVA/Omega können ein durch GI/GL ausgelöstes "auffällig" nicht auf "unauffällig" zurücksetzen', () => {
+    const food = baseFood({ gi: 90, carbsPer100g: 50, portionG: 100, nova: 1, omega: omega('guenstig') })
+    expect(assessFood(food).signal).not.toBe('gruen')
+  })
+
+  it('Regressionstest: Weißmehl-Baguette (GI 95) wird als auffällig eingestuft, nicht mehr als unauffällig', () => {
+    // Reale Produktdaten: GI 95, Kohlenhydrate 55g/100g, Ballaststoffe 2,4g/100g, NOVA 3, Omega unbekannt.
+    const baguette: AssessableFood = {
+      gi: 95,
+      portionG: 100,
+      carbsPer100g: 55,
+      fiberPer100g: 2.4,
+      nova: 3,
+      omega: omega('unbekannt'),
+    }
+    const result = assessFood(baguette)
+
+    expect(result.giCategory).toBe('hoch')
+    expect(result.glValue).toBeCloseTo(52.25, 2)
+    expect(result.glCategory).toBe('hoch')
+    expect(result.signal).toBe('rot')
+    expect(result.signalIncomplete).toBe(true)
+  })
+
+  it('Ballaststoff-Verstärkung greift nur bei bereits auffälligem GI/GL, nicht eigenständig', () => {
+    // Niedriges Ballaststoff-Verhältnis, aber GI/GL unauffällig (niedrig) -> keine Verstärkung, Signal bleibt grün.
+    const food = baseFood({ gi: 30, carbsPer100g: 20, fiberPer100g: 1, portionG: 100, nova: 1, omega: omega('guenstig') })
+    expect(assessFood(food).glCategory).toBe('niedrig')
+    expect(assessFood(food).signal).toBe('gruen')
   })
 })

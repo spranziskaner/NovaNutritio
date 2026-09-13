@@ -2,13 +2,13 @@
   "byCategoryTagKeywords": [
     { "keywords": ["potato", "kartoffel"], "portionG": 150 },
     { "keywords": ["rice"], "portionG": 150 },
-    { "keywords": ["bread", "brot"], "portionG": 30 },
+    { "keywords": ["bread", "brot"], "portionG": 100 },
     { "keywords": ["legume", "lentil", "bean", "chickpea", "huelsenfruecht"], "portionG": 150 }
   ],
   "byFoodCategory": {
     "obst": 120,
     "gemuese": 150,
-    "getreide": 75,
+    "getreide": 100,
     "huelsenfruechte": 150,
     "nuesse-samen": 30,
     "milchprodukte": 150,

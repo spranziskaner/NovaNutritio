@@ -13,19 +13,27 @@ export function AboutSection() {
           verschieben. Starke Blutzucker- und Insulinspitzen verstärken diesen Effekt zusätzlich.
         </p>
         <p>
-          Diese App kombiniert deshalb drei Kennzahlen zu einem{' '}
-          <strong className="text-stone-800 dark:text-stone-200">Gesamtsignal</strong>: den{' '}
-          <strong className="text-stone-800 dark:text-stone-200">Verarbeitungsgrad nach NOVA</strong>{' '}
-          (1 = unverarbeitet bis 4 = ultra-verarbeitet), die{' '}
+          Das <strong className="text-stone-800 dark:text-stone-200">Gesamtsignal</strong> stellt
+          dabei den{' '}
+          <strong className="text-stone-800 dark:text-stone-200">glykämischen Index (GI)</strong>{' '}
+          und die{' '}
           <strong className="text-stone-800 dark:text-stone-200">glykämische Last (GL)</strong>{' '}
-          (Glykämischer Index × Kohlenhydratmenge der Portion – aussagekräftiger für die
-          Insulinwirkung als der GI allein) sowie die{' '}
+          (GI × Kohlenhydratmenge einer realistischen Portion) in den Mittelpunkt: Ab GI 70 bzw.
+          GL 20 pro Portion gilt ein Lebensmittel als auffällig, ab GI 55 bzw. GL 11 als mittel.
+          Die strengere der beiden Einstufungen bildet die Basis des Gesamtsignals. Ein niedriges{' '}
+          <strong className="text-stone-800 dark:text-stone-200">Ballaststoff-Verhältnis</strong>{' '}
+          (Ballaststoffe unter 10&nbsp;% der Kohlenhydrate) verstärkt eine bereits auffällige
+          GI/GL-Einstufung zusätzlich. Der{' '}
+          <strong className="text-stone-800 dark:text-stone-200">Verarbeitungsgrad nach NOVA</strong>{' '}
+          (1 = unverarbeitet bis 4 = ultra-verarbeitet) sowie die{' '}
           <strong className="text-stone-800 dark:text-stone-200">Omega-6/3-Einordnung</strong>{' '}
-          des Lebensmittels. Rot bedeutet: NOVA 4 zusammen mit hoher GL oder ungünstigem
-          Omega-Verhältnis, oder zwei der drei Kriterien fallen ungünstig aus. Gelb heißt: genau
-          eines der drei Kriterien ist auffällig, Grün: alle drei sind unauffällig. Fehlt einer der
-          drei Werte, wird bewusst kein Gesamtsignal berechnet, sondern „unvollständige Datenlage"
-          angezeigt.
+          wirken nur noch als Zusatzfaktoren: NOVA 4 und ein ungünstiges Omega-6/3-Verhältnis
+          können die Einstufung jeweils um eine Stufe verschlechtern, sie aber nie verbessern oder
+          eine bereits auffällige GI/GL-Einstufung neutralisieren. Ein unbekanntes
+          Omega-6/3-Verhältnis fließt dabei gar nicht erst in die Bewertung ein. Grün bedeutet:
+          keiner dieser Faktoren schlägt an. Fehlen GI/GL, NOVA und Omega-6/3 alle drei
+          gleichzeitig, wird bewusst kein Gesamtsignal berechnet, sondern „unvollständige
+          Datenlage" angezeigt.
         </p>
         <p className="italic">
           Hinweis: Alle Werte sind Richtwerte aus öffentlichen Tabellen und Kategorie-Zuordnungen
