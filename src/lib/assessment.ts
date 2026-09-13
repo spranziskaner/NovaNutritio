@@ -60,11 +60,20 @@ export function glCategoryOf(gl: number | null): GlCategory {
   return 'hoch'
 }
 
+/**
+ * Bewusst gerichtete Formulierung statt neutraler Begriffe wie
+ * "unauffällig/auffällig": das Weight-Set-Point-Konzept beschreibt eine
+ * Richtungswirkung (der Körper reguliert sein "Wunschgewicht" hormonell nach
+ * oben oder hält es stabil) – kein Lebensmittel senkt den Sollwert einzeln
+ * nachweisbar ab, aber wiederkehrender Konsum kann ihn anheben. "günstig"
+ * heißt daher: trägt nicht zu dieser Aufwärtsverschiebung bei; "ungünstig":
+ * begünstigt sie.
+ */
 const SIGNAL_HEADLINE: Record<WeightSetPointStatus, string> = {
-  gruen: 'Weight-Set-Point: unauffällig',
-  gelb: 'Weight-Set-Point: mittel',
-  rot: 'Weight-Set-Point: auffällig',
-  unvollstaendig: 'Weight-Set-Point: unvollständige Datenlage',
+  gruen: 'Weight-Set-Point: günstige Wirkung',
+  gelb: 'Weight-Set-Point: leicht ungünstige Wirkung',
+  rot: 'Weight-Set-Point: ungünstige Wirkung',
+  unvollstaendig: 'Weight-Set-Point: nicht bewertbar',
 }
 
 /** Score einer Status-Kategorie für die Weight-Set-Point-Aggregation (0 = unauffällig … 2 = hoch/auffällig). */
@@ -171,16 +180,29 @@ export function assessFood(food: AssessableFood): Assessment {
     reasoning.push(`NOVA-Gruppe ${food.nova}: ${novaLabel(food.nova)} — leichter Zusatzfaktor, nicht ausschlaggebend.`)
   }
 
+  const omegaFromMeasurement = food.omega.ratio !== null
   if (omegaCategory === 'unbekannt') {
     reasoning.push('Omega-6/3-Verhältnis unbekannt — fließt nicht in die Bewertung ein.')
   } else if (food.omega.isWalnutSpecialCase) {
     reasoning.push('Enthält reichlich Omega-3 UND Omega-6 – Sonderfall, nicht pauschal bewertet.')
   } else if (omegaCategory === 'guenstig') {
-    reasoning.push('Günstiges Omega-6/3-Verhältnis laut Kategorie-Zuordnung.')
+    reasoning.push(
+      omegaFromMeasurement
+        ? `Günstiges Omega-6/3-Verhältnis (≈ ${food.omega.ratio?.toFixed(1)}:1), aus gemessenen Nährwerten berechnet.`
+        : 'Günstiges Omega-6/3-Verhältnis laut Kategorie-Zuordnung.',
+    )
   } else if (omegaCategory === 'unguenstig') {
-    reasoning.push('Ungünstiges Omega-6/3-Verhältnis laut Kategorie-/Zutaten-Zuordnung — zusätzlicher Malus.')
+    reasoning.push(
+      omegaFromMeasurement
+        ? `Ungünstiges Omega-6/3-Verhältnis (≈ ${food.omega.ratio?.toFixed(1)}:1), aus gemessenen Nährwerten berechnet — zusätzlicher Malus.`
+        : 'Ungünstiges Omega-6/3-Verhältnis laut Kategorie-/Zutaten-Zuordnung — zusätzlicher Malus.',
+    )
   } else {
-    reasoning.push('Neutrale Omega-6/3-Einordnung.')
+    reasoning.push(
+      omegaFromMeasurement
+        ? `Neutrales Omega-6/3-Verhältnis (≈ ${food.omega.ratio?.toFixed(1)}:1), aus gemessenen Nährwerten berechnet.`
+        : 'Neutrale Omega-6/3-Einordnung.',
+    )
   }
 
   if (food.omega.provenanceUnknown) {

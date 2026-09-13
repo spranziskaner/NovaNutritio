@@ -23,7 +23,7 @@ const LABEL: Record<GlCategory, string> = {
 }
 
 const INFO_TEXT =
-  'GI zeigt die Geschwindigkeit der Zuckeraufnahme, GL die tatsächliche Gesamtbelastung – GL ist aussagekräftiger für die Insulinwirkung.'
+  'Glykämische Last (GL) = GI × Kohlenhydratmenge / 100, immer auf 100 g bezogen. Bildet anders als der GI allein die tatsächliche Blutzucker-/Insulin-Gesamtbelastung ab.'
 
 export function GlBadge({ category, value }: { category: GlCategory; value: number | null }) {
   return (

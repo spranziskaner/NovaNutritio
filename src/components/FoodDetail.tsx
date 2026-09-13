@@ -46,20 +46,9 @@ export function FoodDetail({ food }: { food: RemoteFood }) {
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-lg bg-stone-50 px-3 py-2 text-center dark:bg-stone-800/60">
-          <div className="text-lg font-semibold">
-            <GiPill gi={food.gi} category={a.giCategory} />
-          </div>
-          <div className="text-xs text-stone-500 dark:text-stone-400">
-            Glykämischer Index
-            {food.giSource === 'unbekannt' && (
-              <span className="block italic">nicht verfügbar (Open Food Facts führt keinen GI)</span>
-            )}
-            {food.giSource === 'referenz' && <span className="block italic">aus lokaler Referenztabelle</span>}
-            {food.giSource === 'berechnet' && (
-              <span className="block italic">geschätzt aus Nährwerten (Formel, kein Messwert)</span>
-            )}
-          </div>
+        <div className="flex flex-col items-center justify-center gap-1 rounded-lg bg-stone-50 px-3 py-2 text-center dark:bg-stone-800/60">
+          <GiPill gi={food.gi} category={a.giCategory} source={food.giSource} />
+          <div className="text-xs text-stone-500 dark:text-stone-400">Glykämischer Index</div>
         </div>
         <div className="flex flex-col items-center justify-center gap-1 rounded-lg bg-stone-50 px-3 py-2 text-center dark:bg-stone-800/60">
           <GlBadge category={a.glCategory} value={a.glValue} />
@@ -70,7 +59,7 @@ export function FoodDetail({ food }: { food: RemoteFood }) {
           <div className="text-xs text-stone-500 dark:text-stone-400">Omega-6/3-Verhältnis</div>
         </div>
         <div className="flex items-center justify-center gap-2 rounded-lg bg-stone-50 px-3 py-2 dark:bg-stone-800/60">
-          <NovaBadge nova={food.nova} />
+          <NovaBadge nova={food.nova} estimated={food.novaEstimated} />
         </div>
       </div>
 

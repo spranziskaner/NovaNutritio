@@ -43,8 +43,10 @@ export interface OmegaAssessment {
   isWalnutSpecialCase: boolean
   /** true bei Fleisch/Fisch/Eiern ohne Weide-/Bio-/Wildfang-Label – Einordnung dann unsicher. */
   provenanceUnknown: boolean
-  /** Kurzbegründung für die Einordnung (Kategorie- oder Zutatentreffer). */
+  /** Kurzbegründung für die Einordnung (berechnetes Verhältnis, Kategorie- oder Zutatentreffer). */
   reasonLabel: string
+  /** Omega-6/3-Verhältnis, wenn aus gemessenen Nährwerten berechnet (sonst null). */
+  ratio: number | null
 }
 
 /** Minimale Datenbasis, die die GI/NOVA/Omega-Bewertung benötigt. */
@@ -91,4 +93,6 @@ export interface RemoteFood extends AssessableFood {
   fatPer100g?: number
   /** Kurzbegründung für die NOVA-Einstufung bzw. Hinweis, dass sie fehlt. */
   novaNote: string
+  /** true = `nova` ist eine grobe App-Schätzung (Open Food Facts liefert keine eigene NOVA-Einstufung). */
+  novaEstimated?: boolean
 }

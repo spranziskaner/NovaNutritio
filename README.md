@@ -27,15 +27,25 @@ Es gibt keine lokale/extrahierte Datenbasis mehr.
   Tag-/Nährwert-Filter. Die klassische Route durchsucht Produktname/Marke/Schlagwörter
   bereits server-seitig – ein eigenes clientseitiges Fuzzy-Matching ist damit nicht
   nötig, auch wenn sie (anders als search-a-licious) keine Tippfehlertoleranz bietet.
-  Liefert bewusst nur Anzeigefelder (Name, Marke, Bild, NOVA-Gruppe).
+  Liefert bewusst nur Anzeigefelder (Name, Marke, Bild, NOVA-Gruppe) und ist fest auf
+  Produkte mit Deutschland-Bezug eingeschränkt (`tagtype_0=countries&tag_0=Germany`),
+  da eine unbegrenzte Suche in der globalen OFF-Datenbank bei generischen Begriffen sehr
+  viele, für den deutschsprachigen Anwendungsfall irrelevante Treffer liefert.
 
 Open Food Facts liefert keinen glykämischen Index. Für den GI wird daher zunächst per
 Namensabgleich in einer kleinen, handkuratierten Referenztabelle
 (`src/data/foods.ts`, ~90 Grundnahrungsmittel mit gemessenem/dokumentiertem GI)
 nachgeschlagen (`src/lib/giReference.ts`); ohne Treffer schätzt eine Formel den GI aus
-den Nährwerten (`src/lib/giEstimate.ts`, grobe Näherung, kein Laborwert). Omega-6/3 wird
-ausschließlich über Kategorie-/Label-/Zutatenlisten-Abgleich eingeordnet
-(`src/lib/omegaAssessment.ts`), nie berechnet.
+den Nährwerten (`src/lib/giEstimate.ts`, grobe Näherung, kein Laborwert).
+
+Omega-6/3 wird berechnet, wenn Open Food Facts gemessene Omega-3/6-Fettsäurewerte für ein
+Produkt führt (`omega-3-fat_100g`/`omega-6-fat_100g`, real aber selten gepflegt); sonst
+über Kategorie-/Label-/Zutatenlisten-Abgleich eingeordnet (`src/lib/omegaAssessment.ts`).
+
+Liefert Open Food Facts keine NOVA-Gruppe, versucht die App hilfsweise eine grobe
+Schätzung aus Zutatenliste und GI/GL-Muster (`src/lib/novaEstimate.ts`) – deutlich
+unsicherer als die echte NOVA-Klassifikation und in der UI als Schätzung gekennzeichnet
+(`RemoteFood.novaEstimated`).
 
 ### CORS / Dev-Proxy
 

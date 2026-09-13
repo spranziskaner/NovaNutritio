@@ -3,7 +3,7 @@ import { assessFood } from './assessment'
 import type { AssessableFood, OmegaAssessment } from '../types'
 
 function omega(category: OmegaAssessment['category'], overrides: Partial<OmegaAssessment> = {}): OmegaAssessment {
-  return { category, isWalnutSpecialCase: false, provenanceUnknown: false, reasonLabel: 'test', ...overrides }
+  return { category, isWalnutSpecialCase: false, provenanceUnknown: false, reasonLabel: 'test', ratio: null, ...overrides }
 }
 
 function baseFood(overrides: Partial<AssessableFood>): AssessableFood {

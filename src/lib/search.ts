@@ -39,6 +39,13 @@ interface SearchResponse {
  *
  * Liefert bewusst nur Anzeigefelder (`FoodSummary`): GI/GL/NOVA/Omega werden
  * erst berechnet, wenn ein Treffer ausgewählt wird (siehe `loadFoodDetail.ts`).
+ *
+ * Fest auf den deutschen Markt eingeschränkt (`tagtype_0=countries&tag_0=
+ * Germany`, klassisches Facetten-Suchmuster von `/cgi/search.pl`), statt als
+ * Nutzer-Filter: Open Food Facts ist eine globale Datenbank, ohne Eingrenzung
+ * kommen bei generischen Suchbegriffen sehr viele Treffer aus aller Welt
+ * zurück, die für den deutschsprachigen Anwendungsfall dieser App nicht
+ * relevant sind.
  */
 export async function searchFoods(query: string, pageSize = 30): Promise<FoodSummary[]> {
   const params = new URLSearchParams({
@@ -48,6 +55,10 @@ export async function searchFoods(query: string, pageSize = 30): Promise<FoodSum
     json: '1',
     page_size: String(pageSize),
     fields: SEARCH_FIELDS,
+    lc: 'de',
+    tagtype_0: 'countries',
+    tag_contains_0: 'contains',
+    tag_0: 'Germany',
   })
 
   const response = await fetch(`${SEARCH_URL}?${params}`)

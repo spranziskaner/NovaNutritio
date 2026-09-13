@@ -76,4 +76,39 @@ describe('assessOmega', () => {
     })
     expect(result.category).toBe('unbekannt')
   })
+
+  it('berechnet das Verhältnis aus gemessenen Omega-3/6-Werten, wenn vorhanden, statt zu raten', () => {
+    const result = assessOmega({
+      category: 'nuesse-samen',
+      categoriesTags: ['en:seeds', 'en:sunflower-seeds'], // würde per Kategorie als "ungünstig" gelten
+      labelsTags: [],
+      omega3Per100g: 2,
+      omega6Per100g: 6,
+    })
+    expect(result.ratio).toBeCloseTo(3, 5)
+    expect(result.category).toBe('guenstig')
+  })
+
+  it('ordnet ein gemessenes Verhältnis über 10:1 als ungünstig ein', () => {
+    const result = assessOmega({
+      category: 'oele-fette',
+      categoriesTags: [],
+      labelsTags: [],
+      omega3Per100g: 1,
+      omega6Per100g: 15,
+    })
+    expect(result.category).toBe('unguenstig')
+  })
+
+  it('fällt auf die Kategorie-Heuristik zurück, wenn Omega-3 mit 0 angegeben ist (Division durch 0 vermeiden)', () => {
+    const result = assessOmega({
+      category: 'nuesse-samen',
+      categoriesTags: ['en:seeds', 'en:sunflower-seeds'],
+      labelsTags: [],
+      omega3Per100g: 0,
+      omega6Per100g: 6,
+    })
+    expect(result.ratio).toBeNull()
+    expect(result.category).toBe('unguenstig')
+  })
 })
