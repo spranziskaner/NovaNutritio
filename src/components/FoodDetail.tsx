@@ -54,6 +54,9 @@ export function FoodDetail({ food }: { food: RemoteFood }) {
               <span className="block italic">nicht verfügbar (Open Food Facts führt keinen GI)</span>
             )}
             {food.giSource === 'referenz' && <span className="block italic">aus lokaler Referenztabelle</span>}
+            {food.giSource === 'berechnet' && (
+              <span className="block italic">geschätzt aus Nährwerten (Formel, kein Messwert)</span>
+            )}
           </div>
         </div>
         <div className="rounded-lg bg-neutral-50 px-3 py-2 text-center dark:bg-neutral-800/60">

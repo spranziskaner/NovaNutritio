@@ -1,7 +1,12 @@
-import type { FoodCategory, NovaGroup, RemoteFood } from '../types'
+import type { FoodCategory, GiSource, NovaGroup, RemoteFood } from '../types'
 import { lookupGi } from './giReference'
+import { estimateGiFromMacros } from './giEstimate'
+import { fuzzyScore } from './fuzzySearch'
 
 const API_BASE = 'https://world.openfoodfacts.org'
+
+/** Ab diesem Fuzzy-Score (0..1) gilt ein Treffer als hinreichend ähnlich zum Suchbegriff. */
+const FUZZY_MATCH_THRESHOLD = 0.45
 
 const FIELDS = [
   'code',
@@ -51,24 +56,40 @@ async function offFetch(url: string, signal?: AbortSignal): Promise<unknown> {
   return res.json()
 }
 
-/** Sucht Produkte über die Open-Food-Facts-Volltextsuche nach Produktname/Marke. */
+/**
+ * Sucht Produkte über die Open-Food-Facts-Volltextsuche nach Produktname/Marke.
+ * Da die OFF-Suche selbst keine Tippfehler toleriert, wird ein größerer
+ * Kandidatenpool geladen und lokal per Fuzzy-Matching (Levenshtein-basiert)
+ * neu sortiert und gefiltert – so finden auch leicht falsch geschriebene
+ * oder umgestellte Suchbegriffe noch die passenden Lebensmittel.
+ */
 export async function searchProductsByName(
   query: string,
   opts?: { signal?: AbortSignal; pageSize?: number },
 ): Promise<RemoteFood[]> {
+  const pageSize = opts?.pageSize ?? 24
   const params = new URLSearchParams({
     search_terms: query,
     search_simple: '1',
     action: 'process',
     json: '1',
-    page_size: String(opts?.pageSize ?? 24),
+    page_size: String(Math.min(pageSize * 3, 100)),
     fields: FIELDS,
     lc: 'de',
   })
   const data = (await offFetch(`${API_BASE}/cgi/search.pl?${params.toString()}`, opts?.signal)) as {
     products?: OffProduct[]
   }
-  return mapProducts(data.products ?? [])
+  const candidates = mapProducts(data.products ?? [])
+  return rankByFuzzyMatch(query, candidates).slice(0, pageSize)
+}
+
+function rankByFuzzyMatch(query: string, foods: RemoteFood[]): RemoteFood[] {
+  const scored = foods
+    .map((food) => ({ food, score: fuzzyScore(query, `${food.name} ${food.brand ?? ''}`) }))
+    .sort((a, b) => b.score - a.score)
+  const relevant = scored.filter(({ score }) => score >= FUZZY_MATCH_THRESHOLD)
+  return (relevant.length > 0 ? relevant : scored).map(({ food }) => food)
 }
 
 /** Lädt genau ein Produkt anhand seines EAN/UPC-Barcodes (z. B. per Scanner ermittelt). */
@@ -110,6 +131,24 @@ function mapProduct(p: OffProduct): RemoteFood | null {
   const portionG =
     p.serving_quantity && p.serving_quantity > 0 ? Math.round(p.serving_quantity) : (giMatch?.portionG ?? 100)
 
+  let gi: number | null
+  let giSource: GiSource
+  if (giMatch) {
+    gi = giMatch.gi
+    giSource = 'referenz'
+  } else {
+    const estimated = estimateGiFromMacros({
+      category,
+      carbsPer100g,
+      sugarPer100g: p.nutriments?.sugars_100g,
+      fiberPer100g: p.nutriments?.fiber_100g,
+      proteinPer100g: p.nutriments?.proteins_100g,
+      fatPer100g: p.nutriments?.fat_100g,
+    })
+    gi = estimated
+    giSource = estimated === null ? 'unbekannt' : 'berechnet'
+  }
+
   return {
     id: p.code,
     barcode: p.code,
@@ -117,8 +156,8 @@ function mapProduct(p: OffProduct): RemoteFood | null {
     brand: p.brands?.split(',')[0]?.trim() || undefined,
     category,
     imageUrl: p.image_front_small_url,
-    gi: giMatch?.gi ?? null,
-    giSource: giMatch ? 'referenz' : 'unbekannt',
+    gi,
+    giSource,
     portionG,
     carbsPer100g,
     sugarPer100g: p.nutriments?.sugars_100g,

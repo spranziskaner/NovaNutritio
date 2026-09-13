@@ -46,7 +46,7 @@ export interface AssessableFood {
 }
 
 /** Woher der angezeigte GI-Wert stammt. */
-export type GiSource = 'referenz' | 'unbekannt'
+export type GiSource = 'referenz' | 'berechnet' | 'unbekannt'
 
 /** Zur Laufzeit über die Open-Food-Facts-API geladenes Lebensmittel. */
 export interface RemoteFood extends AssessableFood {

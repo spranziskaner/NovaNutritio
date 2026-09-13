@@ -23,8 +23,11 @@ export function AboutSection() {
         </p>
         <p className="italic">
           Hinweis: Alle Werte sind Richtwerte aus öffentlichen Tabellen und schwanken je nach
-          Sorte, Reifegrad und Zubereitung. Die Einschätzung ist ein didaktisches Hilfsmittel,
-          keine medizinische Bewertung und ersetzt keine individuelle Ernährungsberatung.
+          Sorte, Reifegrad und Zubereitung. Liegt für ein Produkt kein gemessener GI-Wert vor,
+          schätzt die App ihn per Formel aus Zucker-, Ballaststoff-, Fett- und Proteingehalt –
+          das ist eine grobe Näherung, kein Laborwert. Die Einschätzung ist ein didaktisches
+          Hilfsmittel, keine medizinische Bewertung und ersetzt keine individuelle
+          Ernährungsberatung.
         </p>
       </div>
     </details>
