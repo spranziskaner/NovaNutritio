@@ -12,6 +12,7 @@ export const CATEGORY_LABELS: Record<FoodCategory, string> = {
   getraenke: 'Getränke',
   'fertiggerichte-fastfood': 'Fertiggerichte & Fast Food',
   'oele-fette': 'Öle & Fette',
+  sonstiges: 'Sonstiges',
 }
 
 export const CATEGORY_ORDER: FoodCategory[] = [
@@ -26,4 +27,5 @@ export const CATEGORY_ORDER: FoodCategory[] = [
   'getraenke',
   'fertiggerichte-fastfood',
   'oele-fette',
+  'sonstiges',
 ]

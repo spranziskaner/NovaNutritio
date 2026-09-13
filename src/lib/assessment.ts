@@ -1,4 +1,4 @@
-import type { Food, NovaGroup } from '../types'
+import type { AssessableFood, NovaGroup } from '../types'
 
 export type GiCategory = 'niedrig' | 'mittel' | 'hoch' | 'n/a'
 export type GlCategory = 'niedrig' | 'mittel' | 'hoch' | 'n/a'
@@ -8,16 +8,17 @@ export type SetPointVerdict =
   | 'neutral'
   | 'belastend'
   | 'stark-belastend'
+  | 'unbekannt'
 
 export interface Assessment {
   giCategory: GiCategory
   glCategory: GlCategory
   /** Glykämische Last für die angegebene Referenzportion. */
   glValue: number | null
-  novaPoints: number
+  novaPoints: number | null
   glycemicPoints: number
-  /** Gesamtscore 0 (am set-point-freundlichsten) bis 7 (am belastendsten). */
-  score: number
+  /** Gesamtscore 0 (am set-point-freundlichsten) bis 7 (am belastendsten), null wenn NOVA unbekannt. */
+  score: number | null
   verdict: SetPointVerdict
   headline: string
   reasoning: string[]
@@ -48,7 +49,7 @@ export function giCategoryOf(gi: number | null): GiCategory {
   return 'hoch'
 }
 
-export function glycemicLoad(food: Food): number | null {
+export function glycemicLoad(food: Pick<AssessableFood, 'gi' | 'carbsPer100g' | 'portionG'>): number | null {
   if (food.gi === null) return null
   const carbsPerPortion = (food.carbsPer100g * food.portionG) / 100
   return (food.gi * carbsPerPortion) / 100
@@ -78,6 +79,7 @@ const VERDICT_HEADLINE: Record<SetPointVerdict, string> = {
   neutral: 'Neutral – in Maßen gut vertretbar',
   belastend: 'Set-Point-belastend',
   'stark-belastend': 'Stark Set-Point-belastend',
+  unbekannt: 'Einschätzung unvollständig',
 }
 
 function verdictOf(score: number): SetPointVerdict {
@@ -101,19 +103,23 @@ function verdictOf(score: number): SetPointVerdict {
  * Dies ist ein didaktisches Hilfsmittel, keine medizinische Bewertung
  * und ersetzt keine individuelle Ernährungsberatung.
  */
-export function assessFood(food: Food): Assessment {
+export function assessFood(food: AssessableFood): Assessment {
   const giCategory = giCategoryOf(food.gi)
   const glValue = glycemicLoad(food)
   const glCategory = glCategoryOf(glValue)
 
-  const novaPoints = NOVA_POINTS[food.nova]
+  const novaPoints = food.nova === null ? null : NOVA_POINTS[food.nova]
   const glycemicPoints = glycemicPointsOf(glCategory)
-  const score = novaPoints + glycemicPoints
-  const verdict = verdictOf(score)
+  const score = novaPoints === null ? null : novaPoints + glycemicPoints
+  const verdict = novaPoints === null ? 'unbekannt' : verdictOf(score as number)
 
   const reasoning: string[] = []
 
-  if (food.nova === 1) {
+  if (food.nova === null) {
+    reasoning.push(
+      'NOVA-Verarbeitungsgrad für dieses Produkt nicht bekannt – die Gesamteinschätzung bezieht sich daher nur auf den glykämischen Faktor.',
+    )
+  } else if (food.nova === 1) {
     reasoning.push(
       'Unverarbeitet bzw. minimal verarbeitet – Ballaststoffe, Struktur und natürliche Sättigungssignale bleiben erhalten.',
     )

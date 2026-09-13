@@ -6,6 +6,10 @@ import type { Food } from '../types'
  * Tables of Glycemic Index, Sydney University). NOVA-Einstufung nach Monteiro
  * et al.; bei Mischprodukten wurde die für den Verarbeitungsgrad
  * entscheidende Variante gewählt.
+ *
+ * Dient als lokale GI-Referenztabelle für `lib/giReference.ts`: Open Food
+ * Facts liefert keinen glykämischen Index, daher wird bei API-Treffern per
+ * Namensabgleich hier nachgeschlagen.
  */
 export const foods: Food[] = [
   // Obst

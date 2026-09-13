@@ -1,4 +1,4 @@
-import type { Food } from '../types'
+import type { RemoteFood } from '../types'
 import { assessFood } from '../lib/assessment'
 import { CATEGORY_LABELS } from '../data/categories'
 import { NovaBadge } from './NovaBadge'
@@ -18,15 +18,27 @@ function MacroStat({ label, value, unit = 'g' }: { label: string; value?: number
   )
 }
 
-export function FoodDetail({ food }: { food: Food }) {
+export function FoodDetail({ food }: { food: RemoteFood }) {
   const a = assessFood(food)
 
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-sm text-neutral-500 dark:text-neutral-400">{CATEGORY_LABELS[food.category]}</p>
-          <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-50">{food.name}</h2>
+        <div className="flex items-start gap-3">
+          {food.imageUrl && (
+            <img
+              src={food.imageUrl}
+              alt=""
+              className="h-14 w-14 flex-none rounded-lg border border-neutral-200 object-contain dark:border-neutral-800"
+            />
+          )}
+          <div>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+              {CATEGORY_LABELS[food.category]}
+              {food.brand && ` · ${food.brand}`}
+            </p>
+            <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-50">{food.name}</h2>
+          </div>
         </div>
         <VerdictBadge verdict={a.verdict} headline={a.headline} />
       </div>
@@ -36,7 +48,13 @@ export function FoodDetail({ food }: { food: Food }) {
           <div className="text-lg font-semibold">
             <GiPill gi={food.gi} category={a.giCategory} />
           </div>
-          <div className="text-xs text-neutral-500 dark:text-neutral-400">Glykämischer Index</div>
+          <div className="text-xs text-neutral-500 dark:text-neutral-400">
+            Glykämischer Index
+            {food.giSource === 'unbekannt' && (
+              <span className="block italic">nicht verfügbar (Open Food Facts führt keinen GI)</span>
+            )}
+            {food.giSource === 'referenz' && <span className="block italic">aus lokaler Referenztabelle</span>}
+          </div>
         </div>
         <div className="rounded-lg bg-neutral-50 px-3 py-2 text-center dark:bg-neutral-800/60">
           <div className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
@@ -57,6 +75,9 @@ export function FoodDetail({ food }: { food: Food }) {
       <p className="mt-3 text-sm text-neutral-600 dark:text-neutral-400">
         <span className="font-medium text-neutral-800 dark:text-neutral-200">NOVA-Einstufung: </span>
         {food.novaNote}
+      </p>
+      <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-600">
+        Quelle: Open Food Facts · Barcode {food.barcode}
       </p>
 
       <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-5">
