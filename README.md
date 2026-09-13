@@ -120,3 +120,13 @@ Die Function ist danach unter
 Projekt nicht `pdjdejyoxnljcehrwyrb` ist (der in `offApiBase.ts` hinterlegte Default),
 beim Build `VITE_OFF_API_BASE_URL=https://<project-ref>.supabase.co/functions/v1/off-proxy`
 setzen.
+
+## Frontend-Hosting: GitHub Pages
+
+`.github/workflows/deploy-pages.yml` baut die App bei jedem Push auf `main` (oder manuell
+per „Run workflow") und deployt `dist/` nach GitHub Pages. Voraussetzung einmalig im
+Repo: **Settings → Pages → Source: „GitHub Actions"** einstellen.
+
+Die App läuft dort als Project-Page unter `https://<user>.github.io/NovaNutritio/` –
+`vite.config.ts` setzt dafür im Produktions-Build `base: '/NovaNutritio/'`, damit Asset-
+Pfade nicht auf die Domain-Wurzel zeigen.
