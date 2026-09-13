@@ -1,10 +1,11 @@
 import type { FoodCategory, GiSource, NovaGroup, RemoteFood } from '../types'
 import { lookupGi } from './giReference'
 import { estimateGiFromMacros } from './giEstimate'
-import { fuzzyScore } from './fuzzySearch'
+import { rankByFuzzyMatch } from './fuzzySearch'
 import { assessOmega } from './omegaAssessment'
 import { resolvePortionDefault } from './portionDefaults'
 import { searchLocalFoods } from './localFoodSearch'
+import { searchLocalOffDump } from './localOffDump'
 
 const API_BASE = 'https://world.openfoodfacts.org'
 
@@ -33,7 +34,8 @@ interface OffNutriments {
   fat_100g?: number
 }
 
-interface OffProduct {
+/** Rohes OFF-API-Produktformat – auch das Format des Offline-Subsets (siehe `scripts/extract-off-subset.mjs`). */
+export interface OffProduct {
   code: string
   product_name?: string
   product_name_de?: string
@@ -64,15 +66,22 @@ async function offFetch(url: string, signal?: AbortSignal): Promise<unknown> {
 }
 
 /**
- * Sucht Produkte über die Open-Food-Facts-Volltextsuche nach Produktname/Marke,
- * ergänzt um die lokale Referenztabelle (siehe `localFoodSearch.ts`). Zwei
- * Open-Food-Facts-Eigenheiten werden dabei ausgeglichen: (1) die Suche selbst
+ * Sucht Produkte aus drei Quellen und führt sie zusammen: (1) die lokale,
+ * handkuratierte Referenztabelle (`localFoodSearch.ts`, echte GI-Werte),
+ * (2) ein aus dem OpenFoodFacts-Bulk-Export extrahiertes Offline-Subset
+ * (`localOffDump.ts`, funktioniert ohne Internetverbindung) und (3) die
+ * Live-Open-Food-Facts-Suche für alles, was darüber hinausgeht. Zwei
+ * Open-Food-Facts-Eigenheiten werden bei (3) ausgeglichen: die Suche selbst
  * toleriert keine Tippfehler – daher wird ein größerer Kandidatenpool
- * geladen und lokal per Fuzzy-Matching neu sortiert/gefiltert; (2) mehrwortige
+ * geladen und lokal per Fuzzy-Matching neu sortiert/gefiltert; mehrwortige
  * Anfragen ("Granny Smith Apfel") werden von OFF offenbar strikt per UND
  * verknüpft und liefern bei zu spezifischen Suchbegriffen schnell null
  * Treffer – deshalb wird die Anfrage bei leerem Ergebnis schrittweise um das
  * letzte Wort gekürzt und erneut versucht.
+ *
+ * Schlägt die Live-Suche fehl (z. B. kein Internet), wird das nur dann als
+ * Fehler nach oben gereicht, wenn auch die beiden lokalen Quellen nichts
+ * gefunden haben – sonst bleibt die App auch offline benutzbar.
  */
 export async function searchProductsByName(
   query: string,
@@ -80,9 +89,44 @@ export async function searchProductsByName(
 ): Promise<RemoteFood[]> {
   const pageSize = opts?.pageSize ?? 24
   const localMatches = searchLocalFoods(query)
-  const offCandidates = await fetchOffCandidatesWithFallback(query, pageSize, opts?.signal)
-  const rankedOff = rankByFuzzyMatch(query, offCandidates)
-  return [...localMatches, ...rankedOff].slice(0, pageSize)
+
+  const [dumpResult, liveResult] = await Promise.allSettled([
+    searchLocalOffDump(query),
+    fetchOffCandidatesWithFallback(query, pageSize, opts?.signal).then((candidates) =>
+      rankByFuzzyMatch(query, candidates, offSearchText, FUZZY_MATCH_THRESHOLD),
+    ),
+  ])
+
+  const dumpMatches = dumpResult.status === 'fulfilled' ? dumpResult.value : []
+  const liveMatches = liveResult.status === 'fulfilled' ? liveResult.value : []
+
+  if (liveResult.status === 'rejected') {
+    const err = liveResult.reason
+    if (err instanceof DOMException && err.name === 'AbortError') throw err
+    if (localMatches.length === 0 && dumpMatches.length === 0) throw err
+  }
+
+  return mergeByBarcode([localMatches, liveMatches, dumpMatches]).slice(0, pageSize)
+}
+
+function offSearchText(food: RemoteFood): string {
+  return `${food.name} ${food.brand ?? ''}`
+}
+
+/** Führt mehrere Ergebnislisten zusammen, priorisiert nach Reihenfolge der Listen bei doppeltem Barcode. */
+function mergeByBarcode(sources: RemoteFood[][]): RemoteFood[] {
+  const seenBarcodes = new Set<string>()
+  const result: RemoteFood[] = []
+  for (const list of sources) {
+    for (const food of list) {
+      if (food.barcode) {
+        if (seenBarcodes.has(food.barcode)) continue
+        seenBarcodes.add(food.barcode)
+      }
+      result.push(food)
+    }
+  }
+  return result
 }
 
 async function fetchOffCandidatesWithFallback(
@@ -114,14 +158,6 @@ async function fetchOffCandidates(query: string, pageSize: number, signal?: Abor
   return mapProducts(data.products ?? [])
 }
 
-function rankByFuzzyMatch(query: string, foods: RemoteFood[]): RemoteFood[] {
-  const scored = foods
-    .map((food) => ({ food, score: fuzzyScore(query, `${food.name} ${food.brand ?? ''}`) }))
-    .sort((a, b) => b.score - a.score)
-  const relevant = scored.filter(({ score }) => score >= FUZZY_MATCH_THRESHOLD)
-  return (relevant.length > 0 ? relevant : scored).map(({ food }) => food)
-}
-
 /** Lädt genau ein Produkt anhand seines EAN/UPC-Barcodes (z. B. per Scanner ermittelt). */
 export async function getProductByBarcode(
   barcode: string,
@@ -133,14 +169,14 @@ export async function getProductByBarcode(
     opts?.signal,
   )) as { status?: number; product?: OffProduct }
   if (data.status !== 1 || !data.product) return null
-  return mapProduct(data.product)
+  return mapOffProduct(data.product)
 }
 
 function mapProducts(products: OffProduct[]): RemoteFood[] {
   const seen = new Set<string>()
   const result: RemoteFood[] = []
   for (const p of products) {
-    const mapped = mapProduct(p)
+    const mapped = mapOffProduct(p)
     if (mapped && !seen.has(mapped.id)) {
       seen.add(mapped.id)
       result.push(mapped)
@@ -149,7 +185,13 @@ function mapProducts(products: OffProduct[]): RemoteFood[] {
   return result
 }
 
-function mapProduct(p: OffProduct): RemoteFood | null {
+/**
+ * Wandelt ein rohes OFF-Produkt (Live-API-Antwort oder Eintrag aus dem
+ * Offline-Subset, siehe `localOffDump.ts`) in ein `RemoteFood` um – dieselbe
+ * Kategorie-/GI-/Omega-Zuordnung für beide Quellen, damit es keine zwei
+ * parallelen Logiken gibt.
+ */
+export function mapOffProduct(p: OffProduct): RemoteFood | null {
   const name = (p.product_name_de || p.product_name)?.trim()
   const carbsPer100g = p.nutriments?.carbohydrates_100g
   if (!name || !p.code || carbsPer100g === undefined) return null
