@@ -3,7 +3,12 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  // GitHub Pages served als Project-Page unter
+  // https://<user>.github.io/NovaNutritio/ – ohne diesen Präfix würden
+  // Asset-Pfade im Produktions-Build auf die Domain-Wurzel zeigen und
+  // 404en. Im Dev-Server (`command === 'serve'`) bleibt der Pfad `/`.
+  base: command === 'build' ? '/NovaNutritio/' : '/',
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
@@ -20,4 +25,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

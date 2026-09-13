@@ -1,10 +1,11 @@
 import type { FoodSummary } from '../types'
+import { OFF_API_BASE_URL } from './offApiBase'
 
-// Über den Vite-Dev-Proxy (`vite.config.ts`) statt direkt gegen
+// Läuft über `OFF_API_BASE_URL` statt direkt gegen
 // `world.openfoodfacts.org`: die Domain sendet keine
 // `Access-Control-Allow-Origin`-Freigabe für Browser-Anfragen (siehe
-// Kommentar an `offClient.ts`).
-const SEARCH_URL = '/off-api/cgi/search.pl'
+// Kommentar an `offApiBase.ts`/`offClient.ts`).
+const SEARCH_URL = `${OFF_API_BASE_URL}/cgi/search.pl`
 const SEARCH_FIELDS = 'code,product_name,product_name_de,brands,image_front_small_url,countries_tags'
 /** Rohe Trefferzahl je Anfrage, bevor clientseitig auf Deutschland-Bezug gefiltert wird. */
 const RAW_RESULT_MULTIPLIER = 3
