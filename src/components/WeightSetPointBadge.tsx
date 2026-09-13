@@ -1,6 +1,6 @@
-import { SIGNAL_DOT, type GesamtsignalStatus } from '../lib/assessment'
+import { STATUS_DOT, type WeightSetPointStatus } from '../lib/assessment'
 
-const STYLES: Record<GesamtsignalStatus, string> = {
+const STYLES: Record<WeightSetPointStatus, string> = {
   gruen:
     'bg-emerald-100 text-emerald-800 ring-emerald-600/20 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-400/30',
   gelb: 'bg-amber-100 text-amber-800 ring-amber-600/20 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-400/30',
@@ -9,21 +9,21 @@ const STYLES: Record<GesamtsignalStatus, string> = {
     'bg-stone-100 text-stone-600 ring-stone-500/20 dark:bg-stone-800 dark:text-stone-400 dark:ring-stone-500/30',
 }
 
-const DOT = SIGNAL_DOT
+const DOT = STATUS_DOT
 
-export function GesamtsignalBadge({
+export function WeightSetPointBadge({
   signal,
   headline,
   incomplete = false,
 }: {
-  signal: GesamtsignalStatus
+  signal: WeightSetPointStatus
   headline: string
   incomplete?: boolean
 }) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 ring-inset ${STYLES[signal]}`}
-      title="Gesamtsignal auf Basis von glykämischem Index/glykämischer Last (Hauptkriterien), modifiziert durch Ballaststoff-Verhältnis, NOVA-Verarbeitungsgrad und Omega-6/3-Einordnung."
+      title="Weight-Set-Point-Signal auf Basis von glykämischem Index/glykämischer Last (Hauptkriterien), modifiziert durch Ballaststoff-Verhältnis, NOVA-Verarbeitungsgrad und Omega-6/3-Einordnung."
     >
       <span className={`h-2 w-2 rounded-full ${DOT[signal]}`} />
       {headline}

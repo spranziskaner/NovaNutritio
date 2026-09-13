@@ -2,9 +2,10 @@ import type { AssessableFood, NovaGroup, OmegaCategory } from '../types'
 
 export type GiCategory = 'niedrig' | 'mittel' | 'hoch' | 'n/a'
 export type GlCategory = 'niedrig' | 'mittel' | 'hoch' | 'n/a'
-export type GesamtsignalStatus = 'gruen' | 'gelb' | 'rot' | 'unvollstaendig'
+/** Status des Weight-Set-Point-Signals (früher "Gesamtsignal" genannt). */
+export type WeightSetPointStatus = 'gruen' | 'gelb' | 'rot' | 'unvollstaendig'
 
-export const SIGNAL_DOT: Record<GesamtsignalStatus, string> = {
+export const STATUS_DOT: Record<WeightSetPointStatus, string> = {
   gruen: 'bg-emerald-500',
   gelb: 'bg-amber-500',
   rot: 'bg-rose-500',
@@ -14,9 +15,9 @@ export const SIGNAL_DOT: Record<GesamtsignalStatus, string> = {
 export interface Assessment {
   giCategory: GiCategory
   glCategory: GlCategory
-  /** Glykämische Last für die angegebene Referenzportion. */
+  /** Glykämische Last, immer auf 100 g des Lebensmittels bezogen (nicht auf die Portion). */
   glValue: number | null
-  signal: GesamtsignalStatus
+  signal: WeightSetPointStatus
   /** true, wenn nicht alle drei Kriterien (NOVA, GL, Omega-6/3) bekannt waren. */
   signalIncomplete: boolean
   headline: string
@@ -41,10 +42,15 @@ export function giCategoryOf(gi: number | null): GiCategory {
   return 'hoch'
 }
 
-export function glycemicLoad(food: Pick<AssessableFood, 'gi' | 'carbsPer100g' | 'portionG'>): number | null {
+/**
+ * Glykämische Last, immer auf 100 g des Lebensmittels bezogen – unabhängig
+ * von der tatsächlichen Portionsgröße. Das macht GL-Werte über
+ * unterschiedliche Lebensmittel und Portionsangaben hinweg direkt
+ * vergleichbar (statt wie zuvor auf die jeweilige Referenzportion bezogen).
+ */
+export function glycemicLoad(food: Pick<AssessableFood, 'gi' | 'carbsPer100g'>): number | null {
   if (food.gi === null) return null
-  const carbsPerPortion = (food.carbsPer100g * food.portionG) / 100
-  return (food.gi * carbsPerPortion) / 100
+  return (food.gi * food.carbsPer100g) / 100
 }
 
 export function glCategoryOf(gl: number | null): GlCategory {
@@ -54,14 +60,14 @@ export function glCategoryOf(gl: number | null): GlCategory {
   return 'hoch'
 }
 
-const SIGNAL_HEADLINE: Record<GesamtsignalStatus, string> = {
-  gruen: 'Gesamtsignal: unauffällig',
-  gelb: 'Gesamtsignal: mittel',
-  rot: 'Gesamtsignal: auffällig',
-  unvollstaendig: 'Gesamtsignal: unvollständige Datenlage',
+const SIGNAL_HEADLINE: Record<WeightSetPointStatus, string> = {
+  gruen: 'Weight-Set-Point: unauffällig',
+  gelb: 'Weight-Set-Point: mittel',
+  rot: 'Weight-Set-Point: auffällig',
+  unvollstaendig: 'Weight-Set-Point: unvollständige Datenlage',
 }
 
-/** Score einer Status-Kategorie für die Gesamtsignal-Aggregation (0 = unauffällig … 2 = hoch/auffällig). */
+/** Score einer Status-Kategorie für die Weight-Set-Point-Aggregation (0 = unauffällig … 2 = hoch/auffällig). */
 function categoryScore(category: GiCategory | GlCategory): number {
   if (category === 'mittel') return 1
   if (category === 'hoch') return 2
@@ -69,7 +75,7 @@ function categoryScore(category: GiCategory | GlCategory): number {
 }
 
 /**
- * Gesamtsignal nach der Weight-Set-Point-Bewertung: GI und GL sind die
+ * Weight-Set-Point-Signal: GI und GL sind die
  * primären, schwellenwertbasierten Signale (die jeweils strengere der
  * beiden Einstufungen bildet die Basis). NOVA, das Ballaststoff-Verhältnis
  * und Omega-6/3 sind reine Modifikatoren – sie können die Basis-Einstufung
@@ -85,7 +91,7 @@ function signalOf(
   nova: NovaGroup | null,
   omegaCategory: OmegaCategory,
   ballaststoffRatio: number | null,
-): { status: GesamtsignalStatus; incomplete: boolean } {
+): { status: WeightSetPointStatus; incomplete: boolean } {
   const giGlKnown = giCategory !== 'n/a' || glCategory !== 'n/a'
   const novaKnown = nova !== null
   const omegaKnown = omegaCategory !== 'unbekannt'
@@ -148,9 +154,7 @@ export function assessFood(food: AssessableFood): Assessment {
 
   if (glCategory !== 'n/a') {
     const glStatusLabel = glCategory === 'hoch' ? 'auffällig' : glCategory === 'mittel' ? 'mittel' : 'unauffällig'
-    reasoning.push(
-      `Glykämische Last bei realistischer Portion (${food.portionG} g): ${glValue?.toFixed(1)} — ${glStatusLabel}.`,
-    )
+    reasoning.push(`Glykämische Last (auf 100 g bezogen): ${glValue?.toFixed(1)} — ${glStatusLabel}.`)
   }
 
   if (verstaerkungAktiv && ballaststoffRatio !== null) {
@@ -162,7 +166,7 @@ export function assessFood(food: AssessableFood): Assessment {
   if (food.nova === null) {
     reasoning.push('NOVA-Verarbeitungsgrad für dieses Produkt nicht bekannt.')
   } else if (food.nova === 4) {
-    reasoning.push('NOVA-Gruppe 4 (ultra-verarbeitet): zusätzlicher Malus auf das Gesamtsignal.')
+    reasoning.push('NOVA-Gruppe 4 (ultra-verarbeitet): zusätzlicher Malus auf den Weight-Set-Point.')
   } else {
     reasoning.push(`NOVA-Gruppe ${food.nova}: ${novaLabel(food.nova)} — leichter Zusatzfaktor, nicht ausschlaggebend.`)
   }
@@ -189,7 +193,7 @@ export function assessFood(food: AssessableFood): Assessment {
 
   if (signalIncomplete && signal !== 'unvollstaendig') {
     reasoning.push(
-      'Gesamtsignal basiert nur auf den bekannten Kriterien – nicht alle drei Werte (GI/GL, NOVA, Omega-6/3) liegen für dieses Produkt vor.',
+      'Weight-Set-Point basiert nur auf den bekannten Kriterien – nicht alle drei Werte (GI/GL, NOVA, Omega-6/3) liegen für dieses Produkt vor.',
     )
   }
 

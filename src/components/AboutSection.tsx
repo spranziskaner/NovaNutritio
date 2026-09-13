@@ -13,14 +13,15 @@ export function AboutSection() {
           verschieben. Starke Blutzucker- und Insulinspitzen verstärken diesen Effekt zusätzlich.
         </p>
         <p>
-          Das <strong className="text-stone-800 dark:text-stone-200">Gesamtsignal</strong> stellt
-          dabei den{' '}
+          Das <strong className="text-stone-800 dark:text-stone-200">Weight-Set-Point-Signal</strong>{' '}
+          stellt dabei den{' '}
           <strong className="text-stone-800 dark:text-stone-200">glykämischen Index (GI)</strong>{' '}
           und die{' '}
           <strong className="text-stone-800 dark:text-stone-200">glykämische Last (GL)</strong>{' '}
-          (GI × Kohlenhydratmenge einer realistischen Portion) in den Mittelpunkt: Ab GI 70 bzw.
-          GL 20 pro Portion gilt ein Lebensmittel als auffällig, ab GI 55 bzw. GL 11 als mittel.
-          Die strengere der beiden Einstufungen bildet die Basis des Gesamtsignals. Ein niedriges{' '}
+          (GI × Kohlenhydratmenge, immer bezogen auf 100&nbsp;g) in den Mittelpunkt: Ab GI 70 bzw.
+          GL 20 pro 100&nbsp;g gilt ein Lebensmittel als auffällig, ab GI 55 bzw. GL 11 als mittel.
+          Die strengere der beiden Einstufungen bildet die Basis des Weight-Set-Point-Signals. Ein
+          niedriges{' '}
           <strong className="text-stone-800 dark:text-stone-200">Ballaststoff-Verhältnis</strong>{' '}
           (Ballaststoffe unter 10&nbsp;% der Kohlenhydrate) verstärkt eine bereits auffällige
           GI/GL-Einstufung zusätzlich. Der{' '}
@@ -32,8 +33,8 @@ export function AboutSection() {
           eine bereits auffällige GI/GL-Einstufung neutralisieren. Ein unbekanntes
           Omega-6/3-Verhältnis fließt dabei gar nicht erst in die Bewertung ein. Grün bedeutet:
           keiner dieser Faktoren schlägt an. Fehlen GI/GL, NOVA und Omega-6/3 alle drei
-          gleichzeitig, wird bewusst kein Gesamtsignal berechnet, sondern „unvollständige
-          Datenlage" angezeigt.
+          gleichzeitig, wird bewusst kein Weight-Set-Point-Signal berechnet, sondern
+          „unvollständige Datenlage" angezeigt.
         </p>
         <p className="italic">
           Hinweis: Alle Werte sind Richtwerte aus öffentlichen Tabellen und Kategorie-Zuordnungen

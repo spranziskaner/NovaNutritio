@@ -2,7 +2,7 @@ import type { RemoteFood } from '../types'
 import { assessFood } from '../lib/assessment'
 import { CATEGORY_LABELS } from '../data/categories'
 import { NovaBadge } from './NovaBadge'
-import { GesamtsignalBadge } from './GesamtsignalBadge'
+import { WeightSetPointBadge } from './WeightSetPointBadge'
 import { GiPill } from './GiPill'
 import { GlBadge } from './GlBadge'
 import { OmegaBadge } from './OmegaBadge'
@@ -42,7 +42,7 @@ export function FoodDetail({ food }: { food: RemoteFood }) {
             <h2 className="font-serif text-2xl font-semibold text-stone-900 dark:text-stone-50">{food.name}</h2>
           </div>
         </div>
-        <GesamtsignalBadge signal={a.signal} headline={a.headline} incomplete={a.signalIncomplete} />
+        <WeightSetPointBadge signal={a.signal} headline={a.headline} incomplete={a.signalIncomplete} />
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -63,9 +63,7 @@ export function FoodDetail({ food }: { food: RemoteFood }) {
         </div>
         <div className="flex flex-col items-center justify-center gap-1 rounded-lg bg-stone-50 px-3 py-2 text-center dark:bg-stone-800/60">
           <GlBadge category={a.glCategory} value={a.glValue} />
-          <div className="text-xs text-stone-500 dark:text-stone-400">
-            Glykämische Last · {food.portionG} g Portion
-          </div>
+          <div className="text-xs text-stone-500 dark:text-stone-400">Glykämische Last · pro 100 g</div>
         </div>
         <div className="flex flex-col items-center justify-center gap-1 rounded-lg bg-stone-50 px-3 py-2 text-center dark:bg-stone-800/60">
           <OmegaBadge omega={food.omega} />
@@ -94,7 +92,7 @@ export function FoodDetail({ food }: { food: RemoteFood }) {
 
       <div className="mt-6">
         <h3 className="font-serif text-base font-semibold text-stone-800 dark:text-stone-200">
-          Begründung zum Gesamtsignal
+          Begründung zum Weight-Set-Point
         </h3>
         <ul className="mt-2 space-y-1.5">
           {a.reasoning.map((r) => (

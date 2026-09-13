@@ -17,7 +17,7 @@ function baseFood(overrides: Partial<AssessableFood>): AssessableFood {
   }
 }
 
-describe('assessFood – Gesamtsignal (Weight-Set-Point-Bewertung)', () => {
+describe('assessFood – Weight-Set-Point-Signal', () => {
   it('ist grün, wenn GI/GL niedrig sind und NOVA/Omega unauffällig', () => {
     const food = baseFood({ nova: 1, gi: 30, carbsPer100g: 10, portionG: 100, omega: omega('guenstig') })
     expect(assessFood(food).signal).toBe('gruen')
@@ -67,9 +67,9 @@ describe('assessFood – Gesamtsignal (Weight-Set-Point-Bewertung)', () => {
     expect(result.signalIncomplete).toBe(true)
   })
 
-  it('GI allein bestimmt bereits die Basis-Einstufung, auch wenn die GL (kleine Portion) niedriger ausfällt', () => {
-    // GI 70 (hoch) bei sehr geringer Kohlenhydratmenge/Portion -> GL bleibt niedrig, GI bleibt primär.
-    const food = baseFood({ gi: 70, carbsPer100g: 5, portionG: 20, nova: 1, omega: omega('guenstig') })
+  it('GI allein bestimmt bereits die Basis-Einstufung, auch wenn die GL (geringe Kohlenhydratdichte) niedriger ausfällt', () => {
+    // GI 70 (hoch) bei sehr geringer Kohlenhydratmenge pro 100g -> GL (immer auf 100g bezogen) bleibt niedrig, GI bleibt primär.
+    const food = baseFood({ gi: 70, carbsPer100g: 5, nova: 1, omega: omega('guenstig') })
     const result = assessFood(food)
     expect(result.giCategory).toBe('hoch')
     expect(result.glCategory).toBe('niedrig')
@@ -105,5 +105,16 @@ describe('assessFood – Gesamtsignal (Weight-Set-Point-Bewertung)', () => {
     const food = baseFood({ gi: 30, carbsPer100g: 20, fiberPer100g: 1, portionG: 100, nova: 1, omega: omega('guenstig') })
     expect(assessFood(food).glCategory).toBe('niedrig')
     expect(assessFood(food).signal).toBe('gruen')
+  })
+
+  it('Glykämische Last ist immer auf 100g bezogen, unabhängig von der Portionsgröße', () => {
+    const kleinePortion = baseFood({ gi: 80, carbsPer100g: 40, portionG: 20, nova: 1, omega: omega('guenstig') })
+    const grossePortion = baseFood({ gi: 80, carbsPer100g: 40, portionG: 300, nova: 1, omega: omega('guenstig') })
+
+    const a = assessFood(kleinePortion)
+    const b = assessFood(grossePortion)
+
+    expect(a.glValue).toBeCloseTo(32, 2)
+    expect(a.glValue).toBe(b.glValue)
   })
 })
