@@ -1,12 +1,11 @@
 import type { FoodSummary } from '../types'
-import { NovaBadge } from './NovaBadge'
 
 /**
- * Zeigt einen Suchtreffer als reine Vorschau (Name, Marke, Bild, NOVA-Gruppe).
- * GI/GL/Weight-Set-Point stehen an dieser Stelle bewusst noch nicht zur
- * Verfügung: die Suche liefert nur Anzeigefelder, die vollständige Bewertung
- * wird erst beim Auswählen eines Treffers nachgeladen (siehe `App.tsx`,
- * `loadFoodDetail.ts`).
+ * Zeigt einen Suchtreffer als reine Vorschau (Name, Marke, Bild). GI/GL/NOVA/
+ * Weight-Set-Point stehen an dieser Stelle bewusst nicht zur Verfügung bzw.
+ * werden hier bewusst nicht angezeigt: die vollständige Bewertung erscheint
+ * erst in der Detailansicht, wenn ein Treffer ausgewählt wird (siehe
+ * `App.tsx`, `loadFoodDetail.ts`).
  */
 export function FoodListItem({
   food,
@@ -41,7 +40,6 @@ export function FoodListItem({
             <span className="block truncate text-xs text-stone-500 dark:text-stone-400">{food.brand}</span>
           )}
         </span>
-        <NovaBadge nova={food.nova} showInfo={false} />
       </div>
     </button>
   )

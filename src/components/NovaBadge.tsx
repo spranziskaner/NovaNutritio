@@ -12,33 +12,18 @@ const STYLES: Record<NovaGroup, string> = {
 const UNKNOWN_STYLE =
   'bg-stone-100 text-stone-600 ring-stone-500/20 dark:bg-stone-800 dark:text-stone-400 dark:ring-stone-500/30'
 
-/**
- * Die NOVA-Gruppe kommt ausschließlich von Open Food Facts – die App schätzt
- * sie nicht. `showInfo` per default an; muss auf `false` gesetzt werden, wenn
- * das Badge innerhalb eines anderen klickbaren Elements steht (z. B.
- * `FoodListItem`s `<button>`) – verschachtelte Buttons sind ungültiges HTML.
- */
-export function NovaBadge({
-  nova,
-  withLabel = false,
-  showInfo = true,
-}: {
-  nova: NovaGroup | null
-  withLabel?: boolean
-  showInfo?: boolean
-}) {
+/** Die NOVA-Gruppe kommt ausschließlich von Open Food Facts – die App schätzt sie nicht. */
+export function NovaBadge({ nova, withLabel = false }: { nova: NovaGroup | null; withLabel?: boolean }) {
   if (nova === null) {
     return (
       <span
         className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${UNKNOWN_STYLE}`}
       >
         NOVA unbestimmt
-        {showInfo && (
-          <InfoTooltip
-            text="Open Food Facts hat für dieses Produkt keine NOVA-Einstufung hinterlegt."
-            label="Mehr zur NOVA-Einstufung"
-          />
-        )}
+        <InfoTooltip
+          text="Open Food Facts hat für dieses Produkt keine NOVA-Einstufung hinterlegt."
+          label="Mehr zur NOVA-Einstufung"
+        />
       </span>
     )
   }
@@ -49,7 +34,7 @@ export function NovaBadge({
     >
       NOVA {nova}
       {withLabel && <span className="hidden font-normal sm:inline">· {novaLabel(nova)}</span>}
-      {showInfo && <InfoTooltip text={novaLabel(nova)} label="Mehr zur NOVA-Einstufung" />}
+      <InfoTooltip text={novaLabel(nova)} label="Mehr zur NOVA-Einstufung" />
     </span>
   )
 }

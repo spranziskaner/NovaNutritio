@@ -68,7 +68,9 @@ export type GiSource = 'referenz' | 'berechnet' | 'unbekannt'
  * Leichtgewichtiges Suchergebnis von der Open-Food-Facts-Suche
  * (search-a-licious): nur Anzeigefelder, keine Nährwerte. GI/GL/NOVA/Omega
  * werden erst berechnet, wenn ein Eintrag ausgewählt wird (siehe
- * `loadFoodDetail.ts`) – die Volltextsuche selbst liefert diese Werte nicht.
+ * `loadFoodDetail.ts`) – die Volltextsuche selbst liefert diese Werte nicht,
+ * und sie werden in der Trefferliste bewusst auch nicht angezeigt (nur in
+ * der Detailansicht).
  */
 export interface FoodSummary {
   id: string
@@ -76,8 +78,6 @@ export interface FoodSummary {
   name: string
   brand?: string
   imageUrl?: string
-  /** null = von Open Food Facts nicht klassifiziert. */
-  nova: NovaGroup | null
 }
 
 /** Zur Laufzeit über die Open-Food-Facts-API geladenes Lebensmittel. */

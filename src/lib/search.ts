@@ -5,7 +5,7 @@ import type { FoodSummary } from '../types'
 // `Access-Control-Allow-Origin`-Freigabe für Browser-Anfragen (siehe
 // Kommentar an `offClient.ts`).
 const SEARCH_URL = '/off-api/cgi/search.pl'
-const SEARCH_FIELDS = 'code,product_name,product_name_de,brands,image_front_small_url,nova_group,countries_tags'
+const SEARCH_FIELDS = 'code,product_name,product_name_de,brands,image_front_small_url,countries_tags'
 /** Rohe Trefferzahl je Anfrage, bevor clientseitig auf Deutschland-Bezug gefiltert wird. */
 const RAW_RESULT_MULTIPLIER = 3
 /** HTTP-Status, die auf eine vorübergehende Überlastung hindeuten – ein Retry lohnt sich. */
@@ -23,7 +23,6 @@ interface SearchHit {
   product_name_de?: string
   brands?: string
   image_front_small_url?: string
-  nova_group?: number
   countries_tags?: string[]
 }
 
@@ -49,7 +48,9 @@ interface SearchResponse {
  * (anders als search-a-licious) keine Tippfehlertoleranz bietet.
  *
  * Liefert bewusst nur Anzeigefelder (`FoodSummary`): GI/GL/NOVA/Omega werden
- * erst berechnet, wenn ein Treffer ausgewählt wird (siehe `loadFoodDetail.ts`).
+ * erst berechnet, wenn ein Treffer ausgewählt wird (siehe `loadFoodDetail.ts`)
+ * und erscheinen erst dort – die Trefferliste zeigt bewusst auch keine
+ * NOVA-Gruppe an, daher wird `nova_group` hier gar nicht erst angefragt.
  *
  * Auf den deutschen Markt eingeschränkt – aber bewusst clientseitig per
  * `countries_tags`-Filter statt über zusätzliche Facetten-Query-Parameter
@@ -110,17 +111,11 @@ function isGermanProduct(hit: SearchHit): boolean {
 }
 
 function toFoodSummary(hit: SearchHit & { code: string }): FoodSummary {
-  const nova: FoodSummary['nova'] =
-    hit.nova_group === 1 || hit.nova_group === 2 || hit.nova_group === 3 || hit.nova_group === 4
-      ? hit.nova_group
-      : null
-
   return {
     id: hit.code,
     barcode: hit.code,
     name: (hit.product_name_de || hit.product_name || hit.code).trim(),
     brand: hit.brands?.split(',')[0]?.trim() || undefined,
     imageUrl: hit.image_front_small_url,
-    nova,
   }
 }
