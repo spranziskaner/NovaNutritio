@@ -1,5 +1,5 @@
 import type { RemoteFood } from '../types'
-import { mapOffProduct, type OffProduct } from './openfoodfacts'
+import { mapOffProduct, type OffProduct } from './offProduct'
 import { rankByFuzzyMatch } from './fuzzySearch'
 
 const DUMP_URL = `${import.meta.env.BASE_URL}off-subset.json`
@@ -30,11 +30,10 @@ function loadDump(): Promise<RemoteFood[]> {
 /**
  * Durchsucht das aus dem OpenFoodFacts-Bulk-Export extrahierte Offline-Subset
  * (siehe `scripts/extract-off-subset.mjs`, Datei unter `public/off-subset.json`).
- * Läuft unabhängig von der Live-API und funktioniert daher auch ohne
- * Internetverbindung bzw. wenn world.openfoodfacts.org nicht erreichbar ist.
- * Wird nur einmal pro Seitenaufruf geladen und danach im Speicher gehalten.
- * Fehler (Datei fehlt, Netzwerkproblem) werden nicht nach außen gereicht –
- * die Suche funktioniert dann einfach ohne diese Quelle weiter.
+ * Rein lokale, mitgelieferte Datei – kein Netzwerkzugriff auf einen externen
+ * Dienst. Wird nur einmal pro Seitenaufruf geladen und danach im Speicher
+ * gehalten. Fehler (Datei fehlt o. Ä.) werden nicht nach außen gereicht – die
+ * Suche funktioniert dann einfach ohne diese Quelle weiter.
  */
 export async function searchLocalOffDump(query: string): Promise<RemoteFood[]> {
   let entries: RemoteFood[]
@@ -44,4 +43,20 @@ export async function searchLocalOffDump(query: string): Promise<RemoteFood[]> {
     return []
   }
   return rankByFuzzyMatch(query, entries, (f) => `${f.name} ${f.brand ?? ''}`, DUMP_MATCH_THRESHOLD, false)
+}
+
+/**
+ * Sucht ein Produkt anhand seines EAN/UPC-Barcodes im lokalen Offline-Subset
+ * (z. B. nach einem Kamera-Scan). Ersetzt die frühere Live-Abfrage der
+ * Open-Food-Facts-API – funktioniert nur für die ~20.000 im Subset
+ * enthaltenen Produkte.
+ */
+export async function getLocalOffByBarcode(barcode: string): Promise<RemoteFood | null> {
+  let entries: RemoteFood[]
+  try {
+    entries = await loadDump()
+  } catch {
+    return null
+  }
+  return entries.find((f) => f.barcode === barcode) ?? null
 }

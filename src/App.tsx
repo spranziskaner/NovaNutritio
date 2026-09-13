@@ -1,17 +1,19 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import type { FoodCategory, NovaGroup, RemoteFood } from './types'
 import { Filters } from './components/Filters'
 import { FoodListItem } from './components/FoodListItem'
 import { FoodDetail } from './components/FoodDetail'
 import { AboutSection } from './components/AboutSection'
-import { getProductByBarcode, searchProductsByName, OpenFoodFactsError } from './lib/openfoodfacts'
+import { searchFoods } from './lib/search'
+import { listLocalFoods } from './lib/localFoodSearch'
+import { getLocalOffByBarcode } from './lib/localOffDump'
 
 // Zieht die vergleichsweise große ZXing-Scan-Bibliothek erst nach, wenn der
 // Scanner tatsächlich geöffnet wird, statt sie in jedes initiale Laden der
 // App einzurechnen.
 const BarcodeScanner = lazy(() => import('./components/BarcodeScanner').then((m) => ({ default: m.BarcodeScanner })))
 
-const SEARCH_DEBOUNCE_MS = 450
+const SEARCH_DEBOUNCE_MS = 300
 const MIN_QUERY_LENGTH = 2
 
 const canScan = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
@@ -20,69 +22,70 @@ function App() {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<FoodCategory | 'alle'>('alle')
   const [nova, setNova] = useState<NovaGroup | 'alle'>('alle')
-  const [results, setResults] = useState<RemoteFood[]>([])
+  // null = keine Suchanfrage aktiv, der lokale Grundbestand wird angezeigt.
+  const [searchResults, setSearchResults] = useState<RemoteFood[] | null>(null)
+  const [scannedFood, setScannedFood] = useState<RemoteFood | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [scannerOpen, setScannerOpen] = useState(false)
+  // Verwirft die Antwort einer überholten Suchanfrage, falls eine neuere
+  // schneller zurückkommt (z. B. weil der Offline-Datensatz erst geladen
+  // werden musste).
+  const requestIdRef = useRef(0)
 
   useEffect(() => {
     const trimmed = query.trim()
     if (trimmed.length < MIN_QUERY_LENGTH) {
-      setResults([])
-      setError(null)
+      requestIdRef.current++
       setLoading(false)
       return
     }
 
-    const controller = new AbortController()
     const timer = setTimeout(() => {
+      const requestId = ++requestIdRef.current
       setLoading(true)
-      setError(null)
-      searchProductsByName(trimmed, { signal: controller.signal })
+      setNotice(null)
+      searchFoods(trimmed)
         .then((foods) => {
-          setResults(foods)
+          if (requestIdRef.current !== requestId) return
+          setSearchResults(foods)
           setSelectedId((current) => current ?? foods[0]?.id ?? null)
         })
-        .catch((err: unknown) => {
-          if (err instanceof DOMException && err.name === 'AbortError') return
-          setError(err instanceof OpenFoodFactsError ? err.message : 'Suche ist fehlgeschlagen.')
+        .finally(() => {
+          if (requestIdRef.current === requestId) setLoading(false)
         })
-        .finally(() => setLoading(false))
     }, SEARCH_DEBOUNCE_MS)
 
-    return () => {
-      controller.abort()
-      clearTimeout(timer)
-    }
+    return () => clearTimeout(timer)
   }, [query])
 
   async function handleBarcode(barcode: string) {
     setScannerOpen(false)
     setLoading(true)
-    setError(null)
+    setNotice(null)
     try {
-      const food = await getProductByBarcode(barcode)
+      const food = await getLocalOffByBarcode(barcode)
       if (!food) {
-        setError(`Kein Produkt mit Barcode ${barcode} bei Open Food Facts gefunden.`)
+        setNotice(`Kein Produkt mit Barcode ${barcode} im lokalen Datensatz gefunden.`)
         return
       }
-      setResults((prev) => [food, ...prev.filter((f) => f.id !== food.id)])
+      setScannedFood(food)
       setSelectedId(food.id)
-    } catch (err) {
-      setError(err instanceof OpenFoodFactsError ? err.message : 'Barcode-Abfrage ist fehlgeschlagen.')
     } finally {
       setLoading(false)
     }
   }
 
-  const filtered = useMemo(() => {
-    return results.filter((f) => {
-      if (category !== 'alle' && f.category !== category) return false
-      if (nova !== 'alle' && f.nova !== nova) return false
-      return true
-    })
-  }, [results, category, nova])
+  const trimmedQuery = query.trim()
+  const baseResults = trimmedQuery.length < MIN_QUERY_LENGTH ? listLocalFoods() : (searchResults ?? [])
+  const results = scannedFood ? [scannedFood, ...baseResults.filter((f) => f.id !== scannedFood.id)] : baseResults
+
+  const filtered = results.filter((f) => {
+    if (category !== 'alle' && f.category !== category) return false
+    if (nova !== 'alle' && f.nova !== nova) return false
+    return true
+  })
 
   const selected = filtered.find((f) => f.id === selectedId) ?? filtered[0]
 
@@ -94,7 +97,9 @@ function App() {
             NovaNutritio
           </h1>
           <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">
-            Glykämischer Index & Last, NOVA-Verarbeitungsgrad und Omega-6/3-Einordnung – live über die{' '}
+            Glykämischer Index & Last, NOVA-Verarbeitungsgrad und Omega-6/3-Einordnung – vollständig lokal,
+            ohne Live-Abfrage: aus einer handkuratierten Referenztabelle sowie einem lokalen Offline-Auszug
+            der{' '}
             <a
               href="https://world.openfoodfacts.org"
               target="_blank"
@@ -145,24 +150,17 @@ function App() {
                   Suche läuft …
                 </p>
               )}
-              {!loading && error && (
-                <p className="rounded-xl border border-dashed border-rose-300 px-4 py-6 text-center text-sm text-rose-600 dark:border-rose-800 dark:text-rose-400">
-                  {error}
+              {!loading && notice && (
+                <p className="rounded-xl border border-dashed border-amber-300 px-4 py-6 text-center text-sm text-amber-700 dark:border-amber-800 dark:text-amber-400">
+                  {notice}
                 </p>
               )}
-              {!loading && !error && query.trim().length < MIN_QUERY_LENGTH && results.length === 0 && (
-                <p className="rounded-xl border border-dashed border-stone-300 px-4 py-6 text-center text-sm text-stone-500 dark:border-stone-700 dark:text-stone-400">
-                  Lebensmittel oder Marke eingeben, oder einen Barcode scannen/eingeben, um die
-                  Open-Food-Facts-Datenbank zu durchsuchen.
-                </p>
-              )}
-              {!loading && !error && query.trim().length >= MIN_QUERY_LENGTH && filtered.length === 0 && (
+              {!loading && !notice && filtered.length === 0 && (
                 <p className="rounded-xl border border-dashed border-stone-300 px-4 py-6 text-center text-sm text-stone-500 dark:border-stone-700 dark:text-stone-400">
                   Kein Lebensmittel gefunden.
                 </p>
               )}
               {!loading &&
-                !error &&
                 filtered.map((f) => (
                   <FoodListItem
                     key={f.id}

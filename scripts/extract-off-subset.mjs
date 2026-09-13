@@ -9,12 +9,13 @@
 // Bei einem Node-"out of memory"-Fehler bei sehr hohem --limit:
 //   node --max-old-space-size=4096 scripts/extract-off-subset.mjs ...
 //
-// Das Ergebnis ist bewusst im rohen OFF-API-Format (wie die Live-Suche es
-// liefert) statt im Format der handkuratierten `src/data/foods.ts` – die
-// eigentliche Kategorie-/GI-/Omega-Zuordnung übernimmt dieselbe Pipeline wie
-// bei Live-API-Treffern (`mapProduct` in `src/lib/openfoodfacts.ts`), damit
-// es keine zwei parallelen Logiken gibt und "echte Referenz" (foods.ts) und
-// "automatisch zugeordnet" (Massendaten) klar getrennt bleiben.
+// Das Ergebnis ist bewusst im rohen OFF-Produktformat (wie es die
+// Open-Food-Facts-API liefert) statt im Format der handkuratierten
+// `src/data/foods.ts` – die eigentliche Kategorie-/GI-/Omega-Zuordnung
+// übernimmt `mapOffProduct` in `src/lib/offProduct.ts`, damit es keine zwei
+// parallelen Logiken gibt und "echte Referenz" (foods.ts) und "automatisch
+// zugeordnet" (Massendaten) klar getrennt bleiben. Die App selbst greift zur
+// Laufzeit ausschließlich auf diese lokale Datei zu, nicht auf die Live-API.
 
 import { createReadStream, writeFileSync } from 'node:fs'
 import { createGunzip } from 'node:zlib'

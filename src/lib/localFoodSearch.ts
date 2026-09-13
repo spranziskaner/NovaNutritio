@@ -55,10 +55,9 @@ function toRemoteFood(food: Food): RemoteFood {
 /**
  * Durchsucht die lokale, handkuratierte Referenztabelle (`data/foods.ts`) per
  * Fuzzy-Matching. Diese Einträge sind immer vollständig (echter GI, volle
- * Nährwerte) und unabhängig von Open Food Facts verfügbar – Ergänzung für
- * generische Grundnahrungsmittel (z. B. Sorten wie "Granny Smith"), die bei
- * OFF fehlen, unvollständig gepflegt sind oder von der Volltextsuche dort
- * nicht gefunden werden.
+ * Nährwerte) – Ergänzung für generische Grundnahrungsmittel (z. B. Sorten wie
+ * "Granny Smith"), die im Offline-Subset fehlen oder unvollständig gepflegt
+ * sind.
  */
 export function searchLocalFoods(query: string): RemoteFood[] {
   return foods
@@ -66,4 +65,9 @@ export function searchLocalFoods(query: string): RemoteFood[] {
     .filter(({ score }) => score >= LOCAL_MATCH_THRESHOLD)
     .sort((a, b) => b.score - a.score)
     .map(({ food }) => toRemoteFood(food))
+}
+
+/** Alle Einträge der handkuratierten Referenztabelle, z. B. als Startansicht ohne Suchbegriff. */
+export function listLocalFoods(): RemoteFood[] {
+  return foods.map(toRemoteFood)
 }
