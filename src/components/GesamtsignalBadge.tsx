@@ -23,7 +23,7 @@ export function GesamtsignalBadge({
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 ring-inset ${STYLES[signal]}`}
-      title="Kombiniertes Signal aus NOVA-Verarbeitungsgrad, glykämischer Last und Omega-6/3-Einordnung."
+      title="Gesamtsignal auf Basis von glykämischem Index/glykämischer Last (Hauptkriterien), modifiziert durch Ballaststoff-Verhältnis, NOVA-Verarbeitungsgrad und Omega-6/3-Einordnung."
     >
       <span className={`h-2 w-2 rounded-full ${DOT[signal]}`} />
       {headline}
@@ -31,7 +31,7 @@ export function GesamtsignalBadge({
         <span
           aria-hidden="true"
           className="opacity-70"
-          title="Basiert nur auf den bekannten Kriterien – nicht alle drei Werte liegen vor."
+          title="Basiert nur auf den bekannten Kriterien – nicht alle drei Werte (GI/GL, NOVA, Omega-6/3) liegen vor."
         >
           *
         </span>

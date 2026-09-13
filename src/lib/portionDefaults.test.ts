@@ -6,8 +6,8 @@ describe('resolvePortionDefault', () => {
     expect(resolvePortionDefault(['en:vegetables', 'en:potatoes'], 'gemuese')).toBe(150)
   })
 
-  it('liefert 30g für Brot', () => {
-    expect(resolvePortionDefault(['en:breads', 'en:white-breads'], 'getreide')).toBe(30)
+  it('liefert 100g für Brot (realistische Referenzportion statt 30g)', () => {
+    expect(resolvePortionDefault(['en:breads', 'en:white-breads'], 'getreide')).toBe(100)
   })
 
   it('fällt auf die interne Kategorie zurück, wenn kein spezifisches Keyword passt', () => {
