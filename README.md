@@ -37,6 +37,17 @@ den Nährwerten (`src/lib/giEstimate.ts`, grobe Näherung, kein Laborwert). Omeg
 ausschließlich über Kategorie-/Label-/Zutatenlisten-Abgleich eingeordnet
 (`src/lib/omegaAssessment.ts`), nie berechnet.
 
+### CORS / Dev-Proxy
+
+`world.openfoodfacts.org` sendet für Browser-Anfragen von beliebigen Origins keine
+`Access-Control-Allow-Origin`-Freigabe. Im Dev-Server (`npm run dev`) läuft jede Anfrage
+deshalb über einen Vite-Proxy (`vite.config.ts`, Pfad `/off-api`) server-seitig an
+`world.openfoodfacts.org` – dort greift CORS nicht, weil kein Browser-Request an die
+Fremd-Domain mehr nötig ist. **Für einen Produktions-Build braucht es eine äquivalente
+Lösung auf Hosting-Ebene** (z. B. eine Serverless-Function/Edge-Function, die
+`/off-api/*` an `world.openfoodfacts.org` weiterreicht, oder ein Reverse-Proxy-Rewrite),
+da der Vite-Dev-Proxy nur für `npm run dev` gilt.
+
 ## Entwicklung
 
 ```bash

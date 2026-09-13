@@ -1,6 +1,10 @@
 import type { FoodSummary } from '../types'
 
-const SEARCH_URL = 'https://world.openfoodfacts.org/cgi/search.pl'
+// Über den Vite-Dev-Proxy (`vite.config.ts`) statt direkt gegen
+// `world.openfoodfacts.org`: die Domain sendet keine
+// `Access-Control-Allow-Origin`-Freigabe für Browser-Anfragen (siehe
+// Kommentar an `offClient.ts`).
+const SEARCH_URL = '/off-api/cgi/search.pl'
 const SEARCH_FIELDS = 'code,product_name,product_name_de,brands,image_front_small_url,nova_group'
 
 interface SearchHit {
@@ -37,15 +41,16 @@ interface SearchResponse {
  * erst berechnet, wenn ein Treffer ausgewählt wird (siehe `loadFoodDetail.ts`).
  */
 export async function searchFoods(query: string, pageSize = 30): Promise<FoodSummary[]> {
-  const url = new URL(SEARCH_URL)
-  url.searchParams.set('search_terms', query)
-  url.searchParams.set('search_simple', '1')
-  url.searchParams.set('action', 'process')
-  url.searchParams.set('json', '1')
-  url.searchParams.set('page_size', String(pageSize))
-  url.searchParams.set('fields', SEARCH_FIELDS)
+  const params = new URLSearchParams({
+    search_terms: query,
+    search_simple: '1',
+    action: 'process',
+    json: '1',
+    page_size: String(pageSize),
+    fields: SEARCH_FIELDS,
+  })
 
-  const response = await fetch(url)
+  const response = await fetch(`${SEARCH_URL}?${params}`)
   if (!response.ok) {
     console.error('OFF-Suche: Fehlerstatus', response.status, response.statusText)
     throw new Error(`Open-Food-Facts-Suche fehlgeschlagen (Status ${response.status}).`)

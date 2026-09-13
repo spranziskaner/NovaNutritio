@@ -4,19 +4,18 @@ import { OpenFoodFacts } from '@openfoodfacts/openfoodfacts-nodejs'
  * SDK-Client für den Zugriff auf Open Food Facts. Ersetzt die frühere lokale
  * Datenbasis (Offline-Subset + Skript-Extraktion) vollständig: jeder
  * Produktabruf läuft über die offizielle JS/TS-SDK
- * (`@openfoodfacts/openfoodfacts-nodejs`, https://github.com/openfoodfacts/openfoodfacts-js),
- * die klassische Product-Opener-API (`world.openfoodfacts.org`) an – für den
- * Abruf einzelner Produkte per Barcode (API v3, siehe `loadFoodDetail.ts`/
- * `offProduct.ts`).
+ * (`@openfoodfacts/openfoodfacts-nodejs`, https://github.com/openfoodfacts/openfoodfacts-js)
+ * gegen die klassische Product-Opener-API (`world.openfoodfacts.org`) – für
+ * den Abruf einzelner Produkte per Barcode (API v3, siehe
+ * `loadFoodDetail.ts`/`offProduct.ts`).
  *
- * Die Volltextsuche (`search.ts`) läuft NICHT über diesen Client, sondern per
- * direktem `fetch` gegen die klassische `/cgi/search.pl`-Route derselben
- * Domain: die SDK bildet zwar auch die neuere search-a-licious-API ab
- * (`search.openfoodfacts.org`), diese sendet aber keine
- * `Access-Control-Allow-Origin`-Freigabe für beliebige Browser-Origins –
- * Anfragen aus dem Browser schlagen mit einem CORS-Fehler fehl (in der
- * echten App geprüft). `/api/v2/search` der SDK wiederum unterstützt laut
- * generierter OpenAPI-Spezifikation keine freie Textsuche, nur Tag-/
- * Nährwert-Filter. Siehe `search.ts` für Details.
+ * `world.openfoodfacts.org` sendet für Browser-Anfragen von beliebigen
+ * Origins keine `Access-Control-Allow-Origin`-Freigabe (empirisch geprüft:
+ * CORS-Fehler im Browser). Der `host`-Pfad zeigt daher auf `/off-api`, das im
+ * Dev-Server per Vite-Proxy (`vite.config.ts`) server-seitig an
+ * `world.openfoodfacts.org` weitergereicht wird – dort greift CORS nicht,
+ * weil die eigentliche Anfrage nicht mehr vom Browser aus geht. Für den
+ * Produktions-Build braucht es eine äquivalente Lösung auf Hosting-Ebene
+ * (siehe README).
  */
-export const off = new OpenFoodFacts(fetch, { country: 'world', language: 'de' })
+export const off = new OpenFoodFacts(fetch, { host: '/off-api', language: 'de' })
