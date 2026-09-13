@@ -1,6 +1,6 @@
 import type { FoodSummary } from '../types'
-import { search } from './offClient'
 
+const SEARCH_URL = 'https://world.openfoodfacts.org/cgi/search.pl'
 const SEARCH_FIELDS = 'code,product_name,product_name_de,brands,image_front_small_url,nova_group'
 
 interface SearchHit {
@@ -12,54 +12,48 @@ interface SearchHit {
   nova_group?: number
 }
 
-interface SearchSuccess {
-  hits: SearchHit[]
-}
-
-interface SearchFailure {
-  title?: string
-  description?: string
+interface SearchResponse {
+  products?: SearchHit[]
 }
 
 /**
- * Durchsucht ausschließlich Open Food Facts über die offizielle SDK
- * (`@openfoodfacts/openfoodfacts-nodejs`, https://github.com/openfoodfacts/openfoodfacts-js).
- * Die search-a-licious-API (`search.openfoodfacts.org`) übernimmt Volltextsuche,
- * Relevanz-Ranking und Tippfehlertoleranz bereits server-seitig – ein eigenes
- * clientseitiges Fuzzy-Matching (frühere `fuzzySearch.ts`) ist damit nicht
- * mehr nötig.
+ * Durchsucht Open Food Facts über die klassische Volltextsuche
+ * (`world.openfoodfacts.org/cgi/search.pl`, JSON-Modus). Bewusst NICHT über
+ * die SDK-Klasse für die neuere search-a-licious-API: die sendet keine
+ * `Access-Control-Allow-Origin`-Freigabe für beliebige Browser-Origins –
+ * Anfragen direkt aus dem Browser schlagen mit einem CORS-Fehler fehl
+ * (empirisch geprüft). `/api/v2/search` der SDK wiederum unterstützt laut
+ * generierter OpenAPI-Spezifikation keine freie Textsuche (`search_terms`),
+ * nur Tag-/Nährwert-Filter. `/cgi/search.pl` ist daher (noch) nicht Teil der
+ * generierten SDK-Typen, aber die einzige Open-Food-Facts-Volltextsuche, die
+ * seit Jahren direkt aus dem Browser funktioniert.
+ *
+ * Der Server durchsucht Produktname/Marke/Schlagwörter bereits selbst
+ * (MongoDB-Textsuche) – ein eigenes clientseitiges Fuzzy-Matching (frühere
+ * `fuzzySearch.ts`) ist damit nicht nötig, auch wenn diese klassische Suche
+ * (anders als search-a-licious) keine Tippfehlertoleranz bietet.
  *
  * Liefert bewusst nur Anzeigefelder (`FoodSummary`): GI/GL/NOVA/Omega werden
- * erst berechnet, wenn ein Treffer ausgewählt wird (siehe `loadFoodDetail.ts`),
- * statt für jeden Treffer der Liste unnötig Nährwerte anzufragen.
+ * erst berechnet, wenn ein Treffer ausgewählt wird (siehe `loadFoodDetail.ts`).
  */
 export async function searchFoods(query: string, pageSize = 30): Promise<FoodSummary[]> {
-  // Die generierten SDK-Typen bilden das Antwortformat als tief verschachtelten
-  // bedingten Typ ab (Alpha-Software, Stand SDK 2.0.0-alpha) – siehe Kommentar
-  // an `OffProductV3` in `offProduct.ts` für die gleiche Begründung. Wir
-  // arbeiten hier bewusst mit einem eigenen, flachen Typ für die beiden
-  // tatsächlich möglichen Antwortformen (Treffer vs. Fehlerantwort).
-  const { data, error, response } = (await search.searchGet({
-    q: query,
-    langs: 'de,en',
-    page_size: pageSize,
-    fields: SEARCH_FIELDS,
-  })) as { data?: SearchSuccess | SearchFailure; error?: unknown; response: Response }
+  const url = new URL(SEARCH_URL)
+  url.searchParams.set('search_terms', query)
+  url.searchParams.set('search_simple', '1')
+  url.searchParams.set('action', 'process')
+  url.searchParams.set('json', '1')
+  url.searchParams.set('page_size', String(pageSize))
+  url.searchParams.set('fields', SEARCH_FIELDS)
 
-  if (error) {
-    console.error('OFF-Suche: Validierungsfehler (422)', error)
-    throw new Error('Open-Food-Facts-Suche: ungültige Anfrage (siehe Konsole).')
-  }
-  if (!data) {
-    console.error('OFF-Suche: keine Antwort', response.status, response.statusText)
+  const response = await fetch(url)
+  if (!response.ok) {
+    console.error('OFF-Suche: Fehlerstatus', response.status, response.statusText)
     throw new Error(`Open-Food-Facts-Suche fehlgeschlagen (Status ${response.status}).`)
   }
-  if (!('hits' in data)) {
-    console.error('OFF-Suche: Fehlerantwort', data)
-    throw new Error(data.description || data.title || 'Open-Food-Facts-Suche lieferte eine Fehlerantwort.')
-  }
 
-  return data.hits
+  const data = (await response.json()) as SearchResponse
+
+  return (data.products ?? [])
     .filter((hit): hit is SearchHit & { code: string } => Boolean(hit.code))
     .map(toFoodSummary)
 }

@@ -7,21 +7,27 @@ Zeigt zu Lebensmitteln den glykämischen Index (GI), die glykämische Last (GL, 
 Omega-6/3-Einordnung an und leitet daraus ein Weight-Set-Point-Signal ab, wie gut ein
 Lebensmittel zum Weight-Set-Point-Konzept von Dr. Andrew Jenkinson passt.
 
-## Datenquelle: Open Food Facts über die offizielle JS-SDK
+## Datenquelle: Open Food Facts
 
-Es gibt keine lokale/extrahierte Datenbasis mehr. Suche und Produktdaten laufen
-vollständig über die offizielle
-[`@openfoodfacts/openfoodfacts-nodejs`](https://github.com/openfoodfacts/openfoodfacts-js)-SDK
-(browserfähig, siehe `src/lib/offClient.ts`):
+Es gibt keine lokale/extrahierte Datenbasis mehr.
 
-- **Suche** (`src/lib/search.ts`): läuft über die search-a-licious-API
-  (`search.openfoodfacts.org`). Diese übernimmt Volltextsuche, Relevanz-Ranking und
-  Tippfehlertoleranz bereits server-seitig – ein eigenes clientseitiges Fuzzy-Matching
-  ist damit nicht nötig. Die Suche liefert bewusst nur Anzeigefelder (Name, Marke, Bild,
-  NOVA-Gruppe).
-- **Produktdetails** (`src/lib/loadFoodDetail.ts`): werden erst geladen, wenn ein
-  Suchtreffer ausgewählt wird (Product-Opener-API v3, `getProductV3`). Erst dann werden
-  GI, GL, NOVA und Omega-6/3 berechnet (`src/lib/offProduct.ts`).
+- **Produktdetails** (`src/lib/loadFoodDetail.ts`, `src/lib/offClient.ts`): laufen über
+  die offizielle
+  [`@openfoodfacts/openfoodfacts-nodejs`](https://github.com/openfoodfacts/openfoodfacts-js)-SDK
+  (Product-Opener-API v3, `getProductV3`, `world.openfoodfacts.org`) und werden erst
+  geladen, wenn ein Suchtreffer ausgewählt wird. Erst dann werden GI, GL, NOVA und
+  Omega-6/3 berechnet (`src/lib/offProduct.ts`).
+- **Suche** (`src/lib/search.ts`): läuft bewusst NICHT über die SDK, sondern per
+  direktem `fetch` gegen die klassische Volltextsuche
+  (`world.openfoodfacts.org/cgi/search.pl`, JSON-Modus). Die SDK bildet zwar auch die
+  neuere search-a-licious-API ab (`search.openfoodfacts.org`), diese sendet aber keine
+  `Access-Control-Allow-Origin`-Freigabe für beliebige Browser-Origins – Anfragen direkt
+  aus dem Browser schlagen mit einem CORS-Fehler fehl (geprüft). `/api/v2/search` der SDK
+  wiederum unterstützt laut generierter OpenAPI-Spezifikation keine freie Textsuche, nur
+  Tag-/Nährwert-Filter. Die klassische Route durchsucht Produktname/Marke/Schlagwörter
+  bereits server-seitig – ein eigenes clientseitiges Fuzzy-Matching ist damit nicht
+  nötig, auch wenn sie (anders als search-a-licious) keine Tippfehlertoleranz bietet.
+  Liefert bewusst nur Anzeigefelder (Name, Marke, Bild, NOVA-Gruppe).
 
 Open Food Facts liefert keinen glykämischen Index. Für den GI wird daher zunächst per
 Namensabgleich in einer kleinen, handkuratierten Referenztabelle
