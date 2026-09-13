@@ -16,16 +16,25 @@ function delay(ms: number): Promise<void> {
  * konkreten Anfrage (siehe auch `search.ts`). Solche Antworten werden hier
  * zentral für alle SDK-Aufrufe automatisch mit kurzer Wartezeit wiederholt,
  * statt den Fehler sofort weiterzureichen.
+ *
+ * `input` ist bei SDK-Aufrufen ein von `openapi-fetch` gebautes `Request`-
+ * Objekt (nicht bloß ein URL-String) – Safari/WebKit lässt dasselbe
+ * `Request`-Objekt nicht in einem zweiten `fetch()`-Aufruf wiederverwenden
+ * (wirft dort `TypeError: Load failed`), Chrome/Firefox sind toleranter.
+ * Jeder Versuch bekommt deshalb über `.clone()` eine frische Kopie statt das
+ * Original erneut zu verwenden.
  */
 const retryingFetch: typeof fetch = async (input, init) => {
-  let response = await fetch(input, init)
+  const attemptFetch = () => fetch(input instanceof Request ? input.clone() : input, init)
+
+  let response = await attemptFetch()
   for (
     let attempt = 2;
     attempt <= MAX_ATTEMPTS && !response.ok && TRANSIENT_STATUS_CODES.has(response.status);
     attempt++
   ) {
     await delay(RETRY_DELAY_MS * (attempt - 1))
-    response = await fetch(input, init)
+    response = await attemptFetch()
   }
   return response
 }
