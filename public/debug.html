@@ -42,6 +42,13 @@
       Edge Function.
     </p>
     <div id="probes"></div>
+
+    <h2>Eigene URL testen</h2>
+    <p>Testet die exakte URL zweimal: einmal als String, einmal als <code>Request</code>-Objekt (so wie es die SDK intern macht).</p>
+    <textarea id="custom-url" style="min-height: 60px"></textarea>
+    <button id="custom-string">Als String-fetch() testen</button>
+    <button id="custom-request">Als Request-Objekt testen (wie SDK)</button>
+
     <h2>Ergebnis</h2>
     <textarea id="report" readonly></textarea>
     <button id="copy">Kopieren</button>
@@ -51,6 +58,8 @@
       const BARCODE = '3017620422003'
       const FULL_FIELDS =
         'code,product_name,product_name_de,brands,categories_tags,labels_tags,ingredients_text,nova_group,serving_quantity,image_front_url,nutriments'
+      const FAILING_URL_EXAMPLE =
+        'https://pdjdejyoxnljcehrwyrb.supabase.co/functions/v1/off-proxy/api/v3/product/4008948194016?fields=code%2Cproduct_name%2Cproduct_name_de%2Cbrands%2Ccategories_tags%2Clabels_tags%2Cingredients_text%2Cnova_group%2Cserving_quantity%2Cimage_front_url%2Cnutriments'
 
       const PROBES = [
         {
@@ -73,9 +82,25 @@
           title: '4. Direkt gegen world.openfoodfacts.org (ohne Proxy, erwartet CORS-Fehler)',
           url: `https://world.openfoodfacts.org/api/v3/product/${BARCODE}?fields=product_name`,
         },
+        {
+          id: 'as-request',
+          title: '5. Exakte fehlgeschlagene URL, als Request-Objekt (wie SDK)',
+          url: FAILING_URL_EXAMPLE,
+          asRequest: true,
+        },
+        {
+          id: 'as-string',
+          title: '6. Exakte fehlgeschlagene URL, als String (Vergleich)',
+          url: FAILING_URL_EXAMPLE,
+        },
       ]
 
+      document.getElementById('custom-url').value = FAILING_URL_EXAMPLE
+
       const results = {}
+      const titles = {}
+      for (const probe of PROBES) titles[probe.id] = probe.title
+
       const probesEl = document.getElementById('probes')
 
       for (const probe of PROBES) {
@@ -87,10 +112,12 @@
       }
 
       async function run(probe, btn) {
-        btn.disabled = true
+        if (btn) btn.disabled = true
+        titles[probe.id] = probe.title
         const started = performance.now()
         try {
-          const res = await fetch(probe.url)
+          const target = probe.asRequest ? new Request(probe.url, { method: 'GET', redirect: 'follow' }) : probe.url
+          const res = await fetch(target)
           const ms = Math.round(performance.now() - started)
           const buf = await res.arrayBuffer()
           results[probe.id] = [
@@ -108,16 +135,31 @@
             `message: ${err && err.message}`,
           ].join('\n')
         } finally {
-          btn.disabled = false
+          if (btn) btn.disabled = false
           updateReport()
         }
       }
+
+      document.getElementById('custom-string').addEventListener('click', () => {
+        const url = document.getElementById('custom-url').value.trim()
+        run({ id: 'custom-string', title: `Eigene URL als String: ${url}` }, null)
+      })
+      document.getElementById('custom-request').addEventListener('click', () => {
+        const url = document.getElementById('custom-url').value.trim()
+        run({ id: 'custom-request', title: `Eigene URL als Request: ${url}`, asRequest: true }, null)
+      })
 
       function updateReport() {
         const lines = [`UA: ${navigator.userAgent}`, `origin: ${location.origin}`, '']
         for (const probe of PROBES) {
           lines.push(probe.title)
           lines.push(results[probe.id] ?? '(noch nicht getestet)')
+          lines.push('')
+        }
+        for (const id of ['custom-string', 'custom-request']) {
+          if (!results[id]) continue
+          lines.push(titles[id] ?? id)
+          lines.push(results[id])
           lines.push('')
         }
         document.getElementById('report').value = lines.join('\n').trim()
