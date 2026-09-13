@@ -15,8 +15,10 @@ export const STATUS_DOT: Record<WeightSetPointStatus, string> = {
 export interface Assessment {
   giCategory: GiCategory
   glCategory: GlCategory
-  /** Glykämische Last, immer auf 100 g des Lebensmittels bezogen (nicht auf die Portion). */
+  /** Glykämische Last für die tatsächliche Portion – Bewertungsgrundlage (siehe `glycemicLoad`). */
   glValue: number | null
+  /** Glykämische Last je 100 g – nur zum Vergleich zwischen Lebensmitteln, NICHT die Bewertungsgrundlage. */
+  glValuePer100g: number | null
   signal: WeightSetPointStatus
   /** true, wenn nicht alle drei Kriterien (NOVA, GL, Omega-6/3) bekannt waren. */
   signalIncomplete: boolean
@@ -43,12 +45,26 @@ export function giCategoryOf(gi: number | null): GiCategory {
 }
 
 /**
- * Glykämische Last, immer auf 100 g des Lebensmittels bezogen – unabhängig
- * von der tatsächlichen Portionsgröße. Das macht GL-Werte über
- * unterschiedliche Lebensmittel und Portionsangaben hinweg direkt
- * vergleichbar (statt wie zuvor auf die jeweilige Referenzportion bezogen).
+ * Glykämische Last für die tatsächliche Portion (GI × verfügbare
+ * Kohlenhydrate der Portion / 100) – die in der Literatur (und bei
+ * Jenkinson) übliche Definition, und die Bewertungsgrundlage dieser App.
+ * Eine 100-g-Bezugsgröße wäre bei Trockenprodukten (Getreide,
+ * Hülsenfrüchte) irreführend: deren Nährwertangabe bezieht sich meist auf
+ * die trockene Rohware, die aber niemand portionsweise trocken isst – siehe
+ * `resolvePortionDefault` für die realistischen Portionsgrößen.
  */
-export function glycemicLoad(food: Pick<AssessableFood, 'gi' | 'carbsPer100g'>): number | null {
+export function glycemicLoad(food: Pick<AssessableFood, 'gi' | 'carbsPer100g' | 'portionG'>): number | null {
+  if (food.gi === null) return null
+  const carbsPerPortion = (food.carbsPer100g * food.portionG) / 100
+  return (food.gi * carbsPerPortion) / 100
+}
+
+/**
+ * Glykämische Last je 100 g – rein informativ zum Vergleich zwischen
+ * Lebensmitteln unabhängig von der Portionsgröße. Fließt NICHT in die
+ * Weight-Set-Point-Bewertung ein (siehe `glycemicLoad`).
+ */
+export function glycemicLoadPer100g(food: Pick<AssessableFood, 'gi' | 'carbsPer100g'>): number | null {
   if (food.gi === null) return null
   return (food.gi * food.carbsPer100g) / 100
 }
@@ -76,7 +92,7 @@ const SIGNAL_HEADLINE: Record<WeightSetPointStatus, string> = {
   unvollstaendig: 'Weight-Set-Point: nicht bewertbar',
 }
 
-/** Score einer Status-Kategorie für die Weight-Set-Point-Aggregation (0 = unauffällig … 2 = hoch/auffällig). */
+/** Score einer Status-Kategorie für die Weight-Set-Point-Aggregation (0 = niedrig … 2 = hoch). */
 function categoryScore(category: GiCategory | GlCategory): number {
   if (category === 'mittel') return 1
   if (category === 'hoch') return 2
@@ -84,41 +100,69 @@ function categoryScore(category: GiCategory | GlCategory): number {
 }
 
 /**
- * Weight-Set-Point-Signal: GI und GL sind die
- * primären, schwellenwertbasierten Signale (die jeweils strengere der
- * beiden Einstufungen bildet die Basis). NOVA, das Ballaststoff-Verhältnis
- * und Omega-6/3 sind reine Modifikatoren – sie können die Basis-Einstufung
- * nur verschlechtern oder gleich lassen, nie verbessern. Ein unbekannter
- * Omega-Wert fließt dabei bewusst NICHT als neutraler/positiver Wert ein,
- * sondern wird komplett aus der Rechnung ausgeklammert. "Unvollständige
- * Datenlage" gibt es nur, wenn wirklich kein einziges der drei Kriterien
- * (GI/GL, NOVA, Omega-6/3) bekannt ist.
+ * Ballaststoffgehalt, ab dem ein Lebensmittel nach EU-Verordnung (EG) Nr.
+ * 1924/2006 als "Ballaststoffquelle" gelten darf (≥ 3 g je 100 g). Dient
+ * hier als Schwelle für die Ballaststoff-Dämpfung: ein realer, anerkannter
+ * Standard statt einer frei erfundenen Zahl.
+ */
+const FIBER_SOURCE_THRESHOLD_G = 3
+
+/**
+ * Weight-Set-Point-Signal. Reihenfolge/Gewichtung angelehnt an Jenkinsons
+ * Modell ("Warum wir (zu viel) essen"):
+ *
+ * 1. NOVA 4 (ultra-verarbeitet) ist ein Basis-Filter: Zucker,
+ *    Fruktose-Süßungsmittel und Industrie-Pflanzenöle ("die giftige
+ *    Dreifaltigkeit") kommen in NOVA-1/2/3-Produkten praktisch nicht vor –
+ *    NOVA 4 macht ein Lebensmittel daher unabhängig von GI/GL "ungünstig".
+ * 2. Ist NOVA nicht 4, bestimmt die glykämische Last (GL) – nicht der GI –
+ *    die Basis-Einstufung: entscheidend ist laut Jenkinson die gesamte
+ *    freigesetzte Glukosemenge, nicht deren Geschwindigkeit. Der GI spielt
+ *    nur eine Nebenrolle und wird ausschließlich als Fallback verwendet,
+ *    wenn keine GL berechnet werden kann (z. B. kein GI-Wert vorhanden).
+ * 3. Ballaststoffe wirken als Korrekturfaktor, nicht als Zusatzstrafe: ab
+ *    einem Gehalt von 3 g/100 g ("Ballaststoffquelle") wird die
+ *    GL-Einstufung um eine Stufe gedämpft – komplexe Kohlenhydrate mit
+ *    intakter Ballaststoffmatrix setzen ihre Glukose langsamer frei, selbst
+ *    bei gleicher rechnerischer GL. Niedrige Ballaststoffe verschärfen die
+ *    Einstufung dagegen NICHT zusätzlich (das würde dieselbe Information
+ *    doppelt bestrafen).
+ * 4. Omega-6/3 bleibt ein reiner Zusatzfaktor: ein ungünstiges Verhältnis
+ *    verschlechtert die Einstufung um eine Stufe. Ein unbekanntes
+ *    Omega-6/3-Verhältnis (der Normalfall bei Getreide/Gemüse ohne
+ *    relevante Fettquelle) fließt bewusst NICHT negativ ein.
+ *
+ * "Unvollständige Datenlage" gibt es nur, wenn wirklich kein einziges der
+ * drei Kriterien (GI/GL, NOVA, Omega-6/3) bekannt ist.
  */
 function signalOf(
   giCategory: GiCategory,
   glCategory: GlCategory,
   nova: NovaGroup | null,
   omegaCategory: OmegaCategory,
-  ballaststoffRatio: number | null,
+  fiberPer100g: number | undefined,
 ): { status: WeightSetPointStatus; incomplete: boolean } {
   const giGlKnown = giCategory !== 'n/a' || glCategory !== 'n/a'
   const novaKnown = nova !== null
   const omegaKnown = omegaCategory !== 'unbekannt'
+  const incomplete = !giGlKnown || !novaKnown || !omegaKnown
 
   if (!giGlKnown && !novaKnown && !omegaKnown) {
     return { status: 'unvollstaendig', incomplete: true }
   }
 
-  const basisScore = Math.max(categoryScore(giCategory), categoryScore(glCategory))
+  // Basis-Filter: NOVA 4 ist unabhängig von GI/GL "ungünstig".
+  if (nova === 4) {
+    return { status: 'rot', incomplete }
+  }
 
-  const auffaellig = giCategory === 'hoch' || glCategory === 'hoch'
-  const verstaerkung = ballaststoffRatio !== null && ballaststoffRatio < 0.1 && auffaellig ? 1 : 0
+  // GL ist die Basis, wenn bekannt; GI nur als Fallback (Nebenrolle).
+  const fiberDampening = fiberPer100g !== undefined && fiberPer100g >= FIBER_SOURCE_THRESHOLD_G ? 1 : 0
+  const basisScore =
+    glCategory !== 'n/a' ? Math.max(0, categoryScore(glCategory) - fiberDampening) : categoryScore(giCategory)
 
-  const novaModifikator = nova === 4 ? 1 : 0
   const omegaModifikator = omegaCategory === 'unguenstig' ? 1 : 0
-
-  const gesamtScore = basisScore + verstaerkung + novaModifikator + omegaModifikator
-  const incomplete = !giGlKnown || !novaKnown || !omegaKnown
+  const gesamtScore = basisScore + omegaModifikator
 
   if (gesamtScore >= 2) return { status: 'rot', incomplete }
   if (gesamtScore === 1) return { status: 'gelb', incomplete }
@@ -128,24 +172,29 @@ function signalOf(
 export function assessFood(food: AssessableFood): Assessment {
   const giCategory = giCategoryOf(food.gi)
   const glValue = glycemicLoad(food)
+  const glValuePer100g = glycemicLoadPer100g(food)
   const glCategory = glCategoryOf(glValue)
   const omegaCategory = food.omega.category
-  const ballaststoffRatio =
-    food.carbsPer100g > 0 && food.fiberPer100g !== undefined ? food.fiberPer100g / food.carbsPer100g : null
+  const fiberDampeningActive =
+    glCategory !== 'n/a' && food.fiberPer100g !== undefined && food.fiberPer100g >= FIBER_SOURCE_THRESHOLD_G
   const { status: signal, incomplete: signalIncomplete } = signalOf(
     giCategory,
     glCategory,
     food.nova,
     omegaCategory,
-    ballaststoffRatio,
+    food.fiberPer100g,
   )
 
-  const verstaerkungAktiv =
-    ballaststoffRatio !== null && ballaststoffRatio < 0.1 && (giCategory === 'hoch' || glCategory === 'hoch')
-
-  // Begründung folgt der neuen Hierarchie: GI/GL zuerst als Hauptgrund, danach
-  // die Modifikatoren Ballaststoff-Verhältnis, NOVA und Omega-6/3.
+  // Begründung folgt der neuen Hierarchie: NOVA-4-Filter zuerst (falls
+  // zutreffend), dann GL als Hauptgrund (GI nur informativ), danach die
+  // Modifikatoren Ballaststoffe und Omega-6/3.
   const reasoning: string[] = []
+
+  if (food.nova === 4) {
+    reasoning.push(
+      'NOVA-Gruppe 4 (ultra-verarbeitet) — macht das Lebensmittel unabhängig von GI/GL zum Ausschlussgrund für den Weight-Set-Point.',
+    )
+  }
 
   if (giCategory === 'n/a') {
     reasoning.push(
@@ -153,31 +202,27 @@ export function assessFood(food: AssessableFood): Assessment {
         ? 'GI/GL für dieses Produkt nicht verfügbar.'
         : 'Keine relevante Kohlenhydratmenge, daher kaum Einfluss auf Blutzucker/Insulin.',
     )
-  } else if (giCategory === 'hoch') {
-    reasoning.push(`Hoher glykämischer Index (${food.gi}) — Hauptgrund für die Einstufung.`)
-  } else if (giCategory === 'mittel') {
-    reasoning.push(`Mittlerer glykämischer Index (${food.gi}).`)
   } else {
-    reasoning.push(`Niedriger glykämischer Index (${food.gi}).`)
+    reasoning.push(`Glykämischer Index ${food.gi} (${giCategory}) — spielt für die Einstufung nur eine Nebenrolle.`)
   }
 
   if (glCategory !== 'n/a') {
     const glStatusLabel = glCategory === 'hoch' ? 'auffällig' : glCategory === 'mittel' ? 'mittel' : 'unauffällig'
-    reasoning.push(`Glykämische Last (auf 100 g bezogen): ${glValue?.toFixed(1)} — ${glStatusLabel}.`)
+    reasoning.push(
+      `Glykämische Last bei realistischer Portion (${food.portionG} g): ${glValue?.toFixed(1)} — ${glStatusLabel} — Hauptgrund für die Einstufung (zum Vergleich: ${glValuePer100g?.toFixed(1)} je 100 g).`,
+    )
   }
 
-  if (verstaerkungAktiv && ballaststoffRatio !== null) {
+  if (fiberDampeningActive) {
     reasoning.push(
-      `Niedriges Ballaststoff-Verhältnis (${Math.round(ballaststoffRatio * 100)} %) verstärkt die Einstufung.`,
+      `Ballaststoffgehalt (${food.fiberPer100g} g/100 g) mildert die glykämische Last – dämpft die Einstufung um eine Stufe.`,
     )
   }
 
   if (food.nova === null) {
     reasoning.push('NOVA-Verarbeitungsgrad für dieses Produkt nicht bekannt.')
-  } else if (food.nova === 4) {
-    reasoning.push('NOVA-Gruppe 4 (ultra-verarbeitet): zusätzlicher Malus auf den Weight-Set-Point.')
-  } else {
-    reasoning.push(`NOVA-Gruppe ${food.nova}: ${novaLabel(food.nova)} — leichter Zusatzfaktor, nicht ausschlaggebend.`)
+  } else if (food.nova !== 4) {
+    reasoning.push(`NOVA-Gruppe ${food.nova}: ${novaLabel(food.nova)}.`)
   }
 
   const omegaFromMeasurement = food.omega.ratio !== null
@@ -223,6 +268,7 @@ export function assessFood(food: AssessableFood): Assessment {
     giCategory,
     glCategory,
     glValue,
+    glValuePer100g,
     signal,
     signalIncomplete,
     headline: SIGNAL_HEADLINE[signal],

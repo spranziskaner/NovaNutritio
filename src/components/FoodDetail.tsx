@@ -51,8 +51,8 @@ export function FoodDetail({ food }: { food: RemoteFood }) {
           <div className="text-xs text-stone-500 dark:text-stone-400">Glykämischer Index</div>
         </div>
         <div className="flex flex-col items-center justify-center gap-1 rounded-lg bg-stone-50 px-3 py-2 text-center dark:bg-stone-800/60">
-          <GlBadge category={a.glCategory} value={a.glValue} />
-          <div className="text-xs text-stone-500 dark:text-stone-400">Glykämische Last · pro 100 g</div>
+          <GlBadge category={a.glCategory} value={a.glValue} valuePer100g={a.glValuePer100g} />
+          <div className="text-xs text-stone-500 dark:text-stone-400">Glykämische Last · {food.portionG} g Portion</div>
         </div>
         <div className="flex flex-col items-center justify-center gap-1 rounded-lg bg-stone-50 px-3 py-2 text-center dark:bg-stone-800/60">
           <OmegaBadge omega={food.omega} />

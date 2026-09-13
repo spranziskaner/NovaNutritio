@@ -24,9 +24,19 @@ const LABEL: Record<GlCategory, string> = {
 }
 
 const INFO_TEXT =
-  'Glykämische Last (GL) = GI × Kohlenhydratmenge / 100, immer auf 100 g bezogen. Bildet anders als der GI allein die tatsächliche Blutzucker-/Insulin-Gesamtbelastung ab.'
+  'Glykämische Last (GL) = GI × Kohlenhydratmenge der Portion / 100. Bildet anders als der GI allein die tatsächliche Blutzucker-/Insulin-Gesamtbelastung der Portion ab – Bewertungsgrundlage dieser App, nicht auf 100 g bezogen (der Wert je 100 g dient nur zum Vergleich).'
 
-export function GlBadge({ category, value }: { category: GlCategory; value: number | null }) {
+export function GlBadge({
+  category,
+  value,
+  valuePer100g,
+}: {
+  category: GlCategory
+  /** Glykämische Last der tatsächlichen Portion – Bewertungsgrundlage. */
+  value: number | null
+  /** Glykämische Last je 100 g – nur zum Vergleich, nicht die Bewertungsgrundlage. */
+  valuePer100g?: number | null
+}) {
   return (
     <div className="flex flex-col items-center gap-1">
       <span
@@ -37,6 +47,9 @@ export function GlBadge({ category, value }: { category: GlCategory; value: numb
         <InfoTooltip text={INFO_TEXT} label="Mehr zur glykämischen Last" />
       </span>
       {value !== null && <span className="text-xs text-stone-500 dark:text-stone-400">{value.toFixed(1)}</span>}
+      {valuePer100g != null && (
+        <span className="text-[11px] text-stone-400 dark:text-stone-500">({valuePer100g.toFixed(1)} je 100 g)</span>
+      )}
     </div>
   )
 }

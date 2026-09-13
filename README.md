@@ -2,10 +2,21 @@
 
 App für Ernährung basierend auf dem Weight-Set-Point.
 
-Zeigt zu Lebensmitteln den glykämischen Index (GI), die glykämische Last (GL, immer auf
-100 g bezogen), den Verarbeitungsgrad nach der NOVA-Klassifikation und die
-Omega-6/3-Einordnung an und leitet daraus ein Weight-Set-Point-Signal ab, wie gut ein
-Lebensmittel zum Weight-Set-Point-Konzept von Dr. Andrew Jenkinson passt.
+Zeigt zu Lebensmitteln den glykämischen Index (GI), die glykämische Last (GL, bezogen auf
+die tatsächliche Portion – zum Vergleich zusätzlich auch je 100 g), den Verarbeitungsgrad
+nach der NOVA-Klassifikation und die Omega-6/3-Einordnung an und leitet daraus ein
+Weight-Set-Point-Signal ab, wie gut ein Lebensmittel zum Weight-Set-Point-Konzept von
+Dr. Andrew Jenkinson passt.
+
+**Scoring-Rangfolge** (`src/lib/assessment.ts`): (1) NOVA 4 (ultra-verarbeitet) ist ein
+Basis-Filter und macht ein Lebensmittel unabhängig von GI/GL "ungünstig". (2) Sonst
+entscheidet die GL der tatsächlichen Portion über die Basis-Einstufung – der GI spielt nur
+eine Nebenrolle (Fallback, wenn keine GL berechenbar ist): entscheidend ist laut Jenkinson
+die insgesamt freigesetzte Glukosemenge, nicht deren Geschwindigkeit. (3) Ballaststoffe
+(ab 3 g/100 g, EU-Schwelle für "Ballaststoffquelle") dämpfen eine hohe GL um eine Stufe,
+statt sie bei niedrigem Gehalt zusätzlich zu verschärfen. (4) Ein ungünstiges Omega-6/3-
+Verhältnis verschlechtert die Einstufung um eine Stufe; ein unbekanntes (der Normalfall bei
+Getreide ohne relevante Fettquelle) fließt nicht negativ ein.
 
 ## Datenquelle: Open Food Facts
 
@@ -39,6 +50,15 @@ Namensabgleich in einer kleinen, handkuratierten Referenztabelle
 (`src/data/foods.ts`, ~90 Grundnahrungsmittel mit gemessenem/dokumentiertem GI)
 nachgeschlagen (`src/lib/giReference.ts`); ohne Treffer schätzt eine Formel den GI aus
 den Nährwerten (`src/lib/giEstimate.ts`, grobe Näherung, kein Laborwert).
+
+Die Portionsgröße für die GL-Berechnung kommt von OFFs `serving_quantity`, sonst aus
+`src/data/portionDefaults.json` (`src/lib/portionDefaults.ts`). Bei Trockenprodukten
+(Getreide, Hülsenfrüchte, Reis) ist das bewusst die realistische *trockene* Menge pro
+Mahlzeit (z. B. ~60 g, nicht 100 g): die Nährwertangabe dieser Produkte bezieht sich bei
+Open Food Facts auf die trockene Rohware, nicht auf die gekochte Form – 100 g trocken
+entsprechen je nach Produkt etwa 250–300 g gekocht, was sonst die GL massiv überschätzt.
+Konserven-Hülsenfrüchte (bereits gegart) bekommen über eine eigene Keyword-Regel weiterhin
+eine größere, verzehrfertige Portion zugeordnet.
 
 Omega-6/3 wird berechnet, wenn Open Food Facts gemessene Omega-3/6-Fettsäurewerte für ein
 Produkt führt (`omega-3-fat_100g`/`omega-6-fat_100g`, real aber selten gepflegt); sonst

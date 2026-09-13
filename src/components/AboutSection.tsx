@@ -14,28 +14,33 @@ export function AboutSection() {
         </p>
         <p>
           Das <strong className="text-stone-800 dark:text-stone-200">Weight-Set-Point-Signal</strong>{' '}
-          stellt dabei den{' '}
-          <strong className="text-stone-800 dark:text-stone-200">glykämischen Index (GI)</strong>{' '}
-          und die{' '}
+          folgt dabei einer klaren Rangfolge. Zuerst ein Basis-Filter:{' '}
+          <strong className="text-stone-800 dark:text-stone-200">NOVA 4</strong> (ultra-verarbeitet)
+          macht ein Lebensmittel unabhängig von GI/GL zu „ungünstig" – Zucker,
+          Fruktose-Süßungsmittel und Industrie-Pflanzenöle kommen in unverarbeiteten bis
+          handwerklich verarbeiteten Produkten (NOVA 1–3) praktisch nicht vor. Ist NOVA nicht 4,
+          entscheidet die{' '}
           <strong className="text-stone-800 dark:text-stone-200">glykämische Last (GL)</strong>{' '}
-          (GI × Kohlenhydratmenge, immer bezogen auf 100&nbsp;g) in den Mittelpunkt: Ab GI 70 bzw.
-          GL 20 pro 100&nbsp;g gilt ein Lebensmittel als ungünstig, ab GI 55 bzw. GL 11 als leicht
-          ungünstig. Die strengere der beiden Einstufungen bildet die Basis des
-          Weight-Set-Point-Signals. Ein niedriges{' '}
-          <strong className="text-stone-800 dark:text-stone-200">Ballaststoff-Verhältnis</strong>{' '}
-          (Ballaststoffe unter 10&nbsp;% der Kohlenhydrate) verstärkt eine bereits ungünstige
-          GI/GL-Einstufung zusätzlich. Der{' '}
-          <strong className="text-stone-800 dark:text-stone-200">Verarbeitungsgrad nach NOVA</strong>{' '}
-          (1 = unverarbeitet bis 4 = ultra-verarbeitet) sowie die{' '}
+          (GI × Kohlenhydratmenge{' '}
+          <strong className="text-stone-800 dark:text-stone-200">der tatsächlichen Portion</strong>{' '}
+          / 100) über die Basis-Einstufung – ab GL 20 pro Portion gilt ein Lebensmittel als
+          ungünstig, ab GL 11 als leicht ungünstig. Der{' '}
+          <strong className="text-stone-800 dark:text-stone-200">glykämische Index (GI)</strong>{' '}
+          spielt dabei nur eine Nebenrolle (Fallback, wenn keine GL berechnet werden kann): nicht
+          die Geschwindigkeit des Blutzuckeranstiegs ist entscheidend, sondern die insgesamt
+          freigesetzte Glukosemenge. Ein hoher{' '}
+          <strong className="text-stone-800 dark:text-stone-200">Ballaststoffgehalt</strong> (ab
+          3&nbsp;g je 100&nbsp;g, EU-Grenzwert für „Ballaststoffquelle") dämpft die
+          GL-Einstufung um eine Stufe – komplexe Kohlenhydrate mit intakter Ballaststoffmatrix
+          setzen ihre Glukose langsamer frei. Ein niedriger Ballaststoffgehalt verschärft die
+          Einstufung dagegen nicht zusätzlich. Die{' '}
           <strong className="text-stone-800 dark:text-stone-200">Omega-6/3-Einordnung</strong>{' '}
-          wirken nur noch als Zusatzfaktoren: NOVA 4 und ein ungünstiges Omega-6/3-Verhältnis
-          können die Einstufung jeweils um eine Stufe verschlechtern, sie aber nie verbessern oder
-          eine bereits ungünstige GI/GL-Einstufung neutralisieren. Ein unbekanntes
-          Omega-6/3-Verhältnis fließt dabei gar nicht erst in die Bewertung ein. „Günstige Wirkung"
-          bedeutet: keiner dieser Faktoren schlägt an – nicht, dass das Lebensmittel den Sollwert
-          aktiv senkt (das kann ein einzelnes Lebensmittel nicht belegbar). Fehlen GI/GL, NOVA und
-          Omega-6/3 alle drei gleichzeitig, wird bewusst kein Weight-Set-Point-Signal berechnet,
-          sondern „nicht bewertbar" angezeigt.
+          bleibt ein reiner Zusatzfaktor: ein ungünstiges Verhältnis verschlechtert die Einstufung
+          um eine Stufe, ein unbekanntes (der Normalfall bei Getreide ohne relevante Fettquelle)
+          fließt gar nicht erst ein. „Günstige Wirkung" bedeutet: keiner dieser Faktoren schlägt an
+          – nicht, dass das Lebensmittel den Sollwert aktiv senkt (das kann ein einzelnes
+          Lebensmittel nicht belegbar). Fehlen GI/GL, NOVA und Omega-6/3 alle drei gleichzeitig,
+          wird bewusst kein Weight-Set-Point-Signal berechnet, sondern „nicht bewertbar" angezeigt.
         </p>
         <p>
           Das <strong className="text-stone-800 dark:text-stone-200">Omega-6/3-Verhältnis</strong>{' '}
@@ -50,13 +55,17 @@ export function AboutSection() {
         </p>
         <p className="italic">
           Hinweis: Alle Werte sind Richtwerte aus öffentlichen Tabellen und Kategorie-Zuordnungen
-          und schwanken je nach Sorte, Reifegrad, Zubereitung und Herkunft. Liegt für ein Produkt
-          kein gemessener GI-Wert vor, schätzt die App ihn per Formel aus Zucker-, Ballaststoff-,
-          Fett- und Proteingehalt – das ist eine grobe Näherung, kein Laborwert. Die NOVA-Gruppe
-          kommt ausschließlich von Open Food Facts; liegt dort keine vor, zeigt die App „NOVA
-          unbestimmt" an, statt selbst zu schätzen. Die Einschätzung ist ein didaktisches
-          Hilfsmittel, keine medizinische Bewertung und ersetzt keine individuelle
-          Ernährungsberatung.
+          und schwanken je nach Sorte, Reifegrad, Zubereitung und Herkunft. Neben der
+          portionsbezogenen GL zeigt die App zum Vergleich auch den Wert je 100&nbsp;g an – nur die
+          portionsbezogene GL fließt in die Bewertung ein. Bei Trockenprodukten (Getreide,
+          Hülsenfrüchte) ist die hinterlegte Portion die realistische trockene Menge pro Mahlzeit,
+          nicht 100&nbsp;g Rohware, da sich die Nährwertangabe auf die trockene, ungekochte Ware
+          bezieht. Liegt für ein Produkt kein gemessener GI-Wert vor, schätzt die App ihn per
+          Formel aus Zucker-, Ballaststoff-, Fett- und Proteingehalt – das ist eine grobe
+          Näherung, kein Laborwert. Die NOVA-Gruppe kommt ausschließlich von Open Food Facts; liegt
+          dort keine vor, zeigt die App „NOVA unbestimmt" an, statt selbst zu schätzen. Die
+          Einschätzung ist ein didaktisches Hilfsmittel, keine medizinische Bewertung und ersetzt
+          keine individuelle Ernährungsberatung.
         </p>
       </div>
     </details>

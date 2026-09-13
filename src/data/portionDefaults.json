@@ -1,15 +1,16 @@
 {
   "byCategoryTagKeywords": [
+    { "keywords": ["canned", "conserve", "dosen", "konserve"], "portionG": 150 },
     { "keywords": ["potato", "kartoffel"], "portionG": 150 },
-    { "keywords": ["rice"], "portionG": 150 },
+    { "keywords": ["rice"], "portionG": 65 },
     { "keywords": ["bread", "brot"], "portionG": 100 },
-    { "keywords": ["legume", "lentil", "bean", "chickpea", "huelsenfruecht"], "portionG": 150 }
+    { "keywords": ["legume", "lentil", "bean", "chickpea", "huelsenfruecht"], "portionG": 60 }
   ],
   "byFoodCategory": {
     "obst": 120,
     "gemuese": 150,
-    "getreide": 100,
-    "huelsenfruechte": 150,
+    "getreide": 60,
+    "huelsenfruechte": 60,
     "nuesse-samen": 30,
     "milchprodukte": 150,
     "fleisch-fisch-eier": 120,
