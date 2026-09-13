@@ -66,10 +66,14 @@ Deno.serve(async (req) => {
     headers: {
       ...CORS_HEADERS,
       "Content-Type": upstreamResponse.headers.get("Content-Type") ?? "application/json",
-      // Explizit statt dem Runtime-Default überlassen: der openapi-fetch-
-      // Client im Frontend behandelt eine fehlende/falsche Content-Length
-      // bei leerem Body als Sonderfall (kein Fehler, aber auch keine Daten).
-      "Content-Length": String(body.byteLength),
+      // Kein eigenes Content-Length setzen: Supabase komprimiert Antworten
+      // ab einer gewissen Größe transparent (gzip/br) und berechnet die
+      // Länge dafür selbst neu. Ein von uns gesetzter (unkomprimierter)
+      // Wert weicht dann von der tatsächlich übertragenen Byte-Zahl ab –
+      // Safaris fetch() ist bei so einem Mismatch strenger als Chrome und
+      // bricht den Request mit "Load failed" ab, statt ihn zu ignorieren.
+      // Kleine Antworten (z. B. mit wenigen `fields`) blieben unter der
+      // Kompressions-Schwelle und funktionierten deshalb trotzdem.
     },
   });
 });
