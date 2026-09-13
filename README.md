@@ -84,10 +84,12 @@ keine vor, zeigt die App „NOVA unbestimmt" an.
 `Access-Control-Allow-Origin`-Freigabe. Im Dev-Server (`npm run dev`) läuft jede Anfrage
 deshalb über einen Vite-Proxy (`vite.config.ts`, Pfad `/off-api`) server-seitig an
 `world.openfoodfacts.org` – dort greift CORS nicht, weil kein Browser-Request an die
-Fremd-Domain mehr nötig ist. **Für einen Produktions-Build braucht es eine äquivalente
-Lösung auf Hosting-Ebene** (z. B. eine Serverless-Function/Edge-Function, die
-`/off-api/*` an `world.openfoodfacts.org` weiterreicht, oder ein Reverse-Proxy-Rewrite),
-da der Vite-Dev-Proxy nur für `npm run dev` gilt.
+Fremd-Domain mehr nötig ist.
+
+Im Produktions-Build übernimmt eine Supabase Edge Function denselben Zweck (siehe
+„Backend: Supabase Edge Function" unten). Welche Basis-URL der Client verwendet,
+entscheidet `src/lib/offApiBase.ts` (Dev: `/off-api`, Produktion: die Edge-Function-URL,
+per `VITE_OFF_API_BASE_URL` überschreibbar).
 
 ## Entwicklung
 
@@ -96,3 +98,25 @@ npm install
 npm run dev
 npm test
 ```
+
+## Backend: Supabase Edge Function
+
+`supabase/functions/off-proxy` ist der Produktions-Ersatz für den Vite-Dev-Proxy: eine
+Deno-Edge-Function, die Anfragen 1:1 an `world.openfoodfacts.org` weiterreicht und
+CORS-Header setzt. Läuft ohne Supabase-Auth (`verify_jwt = false` in
+`supabase/config.toml`), da der Client sie direkt aus dem Browser ohne Login aufruft.
+
+Einmalig verlinken und deployen (Supabase-CLI, `npx supabase` reicht ohne globale
+Installation):
+
+```bash
+npx supabase login
+npx supabase link --project-ref <project-ref>
+npx supabase functions deploy off-proxy
+```
+
+Die Function ist danach unter
+`https://<project-ref>.supabase.co/functions/v1/off-proxy` erreichbar. Falls das
+Projekt nicht `pdjdejyoxnljcehrwyrb` ist (der in `offApiBase.ts` hinterlegte Default),
+beim Build `VITE_OFF_API_BASE_URL=https://<project-ref>.supabase.co/functions/v1/off-proxy`
+setzen.

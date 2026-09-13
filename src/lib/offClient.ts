@@ -1,4 +1,5 @@
 import { OpenFoodFacts } from '@openfoodfacts/openfoodfacts-nodejs'
+import { OFF_API_BASE_URL } from './offApiBase'
 
 /** HTTP-Status, die auf eine vorübergehende Überlastung hindeuten – ein Retry lohnt sich. */
 const TRANSIENT_STATUS_CODES = new Set([502, 503, 504])
@@ -40,11 +41,11 @@ const retryingFetch: typeof fetch = async (input, init) => {
  *
  * `world.openfoodfacts.org` sendet für Browser-Anfragen von beliebigen
  * Origins keine `Access-Control-Allow-Origin`-Freigabe (empirisch geprüft:
- * CORS-Fehler im Browser). Der `host`-Pfad zeigt daher auf `/off-api`, das im
- * Dev-Server per Vite-Proxy (`vite.config.ts`) server-seitig an
- * `world.openfoodfacts.org` weitergereicht wird – dort greift CORS nicht,
- * weil die eigentliche Anfrage nicht mehr vom Browser aus geht. Für den
- * Produktions-Build braucht es eine äquivalente Lösung auf Hosting-Ebene
- * (siehe README).
+ * CORS-Fehler im Browser). Der `host`-Pfad zeigt daher auf `OFF_API_BASE_URL`
+ * (siehe `offApiBase.ts`): im Dev-Server der Vite-Proxy (`vite.config.ts`,
+ * `/off-api`), im Produktions-Build eine Supabase Edge Function
+ * (`supabase/functions/off-proxy`) – beide reichen die Anfrage server-seitig
+ * an `world.openfoodfacts.org` weiter, dort greift CORS nicht, weil die
+ * eigentliche Anfrage nicht mehr vom Browser aus geht.
  */
-export const off = new OpenFoodFacts(retryingFetch, { host: '/off-api', language: 'de' })
+export const off = new OpenFoodFacts(retryingFetch, { host: OFF_API_BASE_URL, language: 'de' })
