@@ -4,6 +4,13 @@ export type GiCategory = 'niedrig' | 'mittel' | 'hoch' | 'n/a'
 export type GlCategory = 'niedrig' | 'mittel' | 'hoch' | 'n/a'
 export type GesamtsignalStatus = 'gruen' | 'gelb' | 'rot' | 'unvollstaendig'
 
+export const SIGNAL_DOT: Record<GesamtsignalStatus, string> = {
+  gruen: 'bg-emerald-500',
+  gelb: 'bg-amber-500',
+  rot: 'bg-rose-500',
+  unvollstaendig: 'bg-stone-400',
+}
+
 export interface Assessment {
   giCategory: GiCategory
   glCategory: GlCategory

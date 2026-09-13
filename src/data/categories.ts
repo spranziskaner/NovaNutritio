@@ -14,18 +14,3 @@ export const CATEGORY_LABELS: Record<FoodCategory, string> = {
   'oele-fette': 'Öle & Fette',
   sonstiges: 'Sonstiges',
 }
-
-export const CATEGORY_ORDER: FoodCategory[] = [
-  'obst',
-  'gemuese',
-  'getreide',
-  'huelsenfruechte',
-  'nuesse-samen',
-  'milchprodukte',
-  'fleisch-fisch-eier',
-  'suess-snacks',
-  'getraenke',
-  'fertiggerichte-fastfood',
-  'oele-fette',
-  'sonstiges',
-]

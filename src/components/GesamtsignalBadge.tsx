@@ -1,4 +1,4 @@
-import type { GesamtsignalStatus } from '../lib/assessment'
+import { SIGNAL_DOT, type GesamtsignalStatus } from '../lib/assessment'
 
 const STYLES: Record<GesamtsignalStatus, string> = {
   gruen:
@@ -9,12 +9,7 @@ const STYLES: Record<GesamtsignalStatus, string> = {
     'bg-stone-100 text-stone-600 ring-stone-500/20 dark:bg-stone-800 dark:text-stone-400 dark:ring-stone-500/30',
 }
 
-const DOT: Record<GesamtsignalStatus, string> = {
-  gruen: 'bg-emerald-500',
-  gelb: 'bg-amber-500',
-  rot: 'bg-rose-500',
-  unvollstaendig: 'bg-stone-400',
-}
+const DOT = SIGNAL_DOT
 
 export function GesamtsignalBadge({
   signal,
