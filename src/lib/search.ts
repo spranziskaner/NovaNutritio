@@ -91,7 +91,22 @@ export async function searchFoods(query: string, pageSize = 30): Promise<FoodSum
 async function fetchWithRetry(url: string): Promise<SearchResponse> {
   let lastStatus: number | undefined
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const response = await fetch(url)
+    let response: Response
+    try {
+      response = await fetch(url)
+    } catch (err) {
+      // fetch() kann auch ganz ohne HTTP-Antwort abbrechen (Verbindungsfehler,
+      // z. B. "Load failed" auf iOS Safari) – das wird wie ein transienter
+      // Statuscode behandelt statt sofort durchzureichen.
+      console.error(`OFF-Suche: fetch() fehlgeschlagen (Versuch ${attempt}/${MAX_ATTEMPTS})`, err)
+      if (attempt === MAX_ATTEMPTS) {
+        const reason = err instanceof Error ? err.message : String(err)
+        throw new Error(`Open-Food-Facts-Suche fehlgeschlagen: ${reason}`)
+      }
+      await delay(RETRY_DELAY_MS * attempt)
+      continue
+    }
+
     if (response.ok) {
       return (await response.json()) as SearchResponse
     }

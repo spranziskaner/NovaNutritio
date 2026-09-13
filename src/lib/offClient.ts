@@ -11,42 +11,48 @@ function delay(ms: number): Promise<void> {
 }
 
 /**
- * Open Food Facts antwortet gelegentlich mit HTTP 502/503/504, wenn die
- * (teils ältere) Infrastruktur kurzzeitig überlastet ist – unabhängig von der
- * konkreten Anfrage (siehe auch `search.ts`). Solche Antworten werden hier
- * zentral für alle SDK-Aufrufe automatisch mit kurzer Wartezeit wiederholt,
- * statt den Fehler sofort weiterzureichen.
+ * Open Food Facts / die Supabase Edge Function davor schlagen gelegentlich
+ * fehl – teils mit HTTP 502/503/504, teils bricht `fetch()` selbst mit einer
+ * Exception ab (z. B. `TypeError: Load failed` auf iOS Safari bei einer
+ * abgebrochenen Verbindung). Empirisch reproduzierbar: dieselbe URL, die in
+ * der App mit "Load failed" scheiterte, lief kurz danach über einen
+ * manuellen `fetch()`-Aufruf anstandslos durch – also keine deterministische
+ * Ursache (falsche URL, CORS, Request-Objekt), sondern zeitlich schwankende
+ * Netzwerk-/Backend-Flakiness. Beide Fehlerarten werden hier daher
+ * gleichermaßen mit kurzer Wartezeit wiederholt, statt nur HTTP-Statuscodes
+ * abzudecken.
  *
  * `input` ist bei SDK-Aufrufen ein von `openapi-fetch` gebautes `Request`-
  * Objekt (nicht bloß ein URL-String) – Safari/WebKit lässt dasselbe
- * `Request`-Objekt nicht in einem zweiten `fetch()`-Aufruf wiederverwenden
- * (wirft dort `TypeError: Load failed`), Chrome/Firefox sind toleranter.
- * Jeder Versuch bekommt deshalb über `.clone()` eine frische Kopie statt das
- * Original erneut zu verwenden.
+ * `Request`-Objekt nicht in einem zweiten `fetch()`-Aufruf wiederverwenden,
+ * Chrome/Firefox sind toleranter. Jeder Versuch bekommt deshalb über
+ * `.clone()` eine frische Kopie statt das Original erneut zu verwenden.
  */
 const retryingFetch: typeof fetch = async (input, init) => {
   const attemptFetch = () => fetch(input instanceof Request ? input.clone() : input, init)
   const requestUrl = input instanceof Request ? input.url : String(input)
 
-  try {
-    let response = await attemptFetch()
-    for (
-      let attempt = 2;
-      attempt <= MAX_ATTEMPTS && !response.ok && TRANSIENT_STATUS_CODES.has(response.status);
-      attempt++
-    ) {
-      await delay(RETRY_DELAY_MS * (attempt - 1))
-      response = await attemptFetch()
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const isLastAttempt = attempt === MAX_ATTEMPTS
+    try {
+      const response = await attemptFetch()
+      if (response.ok || !TRANSIENT_STATUS_CODES.has(response.status) || isLastAttempt) {
+        return response
+      }
+    } catch (err) {
+      if (isLastAttempt) {
+        // Reichert die Exception um die tatsächlich von der SDK gebaute URL
+        // an – ohne Entwicklertools auf dem betroffenen Gerät ist sonst
+        // nicht erkennbar, wohin der fehlgeschlagene Request überhaupt ging.
+        const reason = err instanceof Error ? err.message : String(err)
+        throw new Error(`Fetch fehlgeschlagen nach ${MAX_ATTEMPTS} Versuchen: ${reason} — URL: ${requestUrl}`)
+      }
     }
-    return response
-  } catch (err) {
-    // Reichert die Exception um die tatsächlich von der SDK gebaute URL an –
-    // ohne Zugriff auf ein Gerät mit Entwicklertools (z. B. per iPhone-
-    // Fehlerbericht) ist sonst nicht erkennbar, wohin der fehlgeschlagene
-    // Request überhaupt ging.
-    const reason = err instanceof Error ? err.message : String(err)
-    throw new Error(`Fetch fehlgeschlagen: ${reason} — URL: ${requestUrl}`)
+    await delay(RETRY_DELAY_MS * attempt)
   }
+
+  // Unerreichbar: die Schleife kehrt beim letzten Versuch immer zurück oder wirft.
+  throw new Error(`Fetch fehlgeschlagen — URL: ${requestUrl}`)
 }
 
 /**
