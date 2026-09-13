@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NovaNutritio – Netzwerk-Diagnose</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 640px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        line-height: 1.5;
+      }
+      button {
+        display: block;
+        width: 100%;
+        margin: 0.5rem 0;
+        padding: 0.75rem;
+        font-size: 1rem;
+      }
+      pre {
+        background: #eee;
+        padding: 0.75rem;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 0.8rem;
+      }
+      textarea {
+        width: 100%;
+        min-height: 160px;
+        font-family: monospace;
+        font-size: 0.8rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Netzwerk-Diagnose</h1>
+    <p>
+      Läuft auf derselben Domain wie die App (keine Sandbox-Einschränkungen wie bei einem
+      Claude-Artifact). Testet drei echte Fetch-Requests gegen die <code>off-proxy</code>
+      Edge Function.
+    </p>
+    <div id="probes"></div>
+    <h2>Ergebnis</h2>
+    <textarea id="report" readonly></textarea>
+    <button id="copy">Kopieren</button>
+
+    <script>
+      const FUNCTION_BASE = 'https://pdjdejyoxnljcehrwyrb.supabase.co/functions/v1/off-proxy'
+      const BARCODE = '3017620422003'
+      const FULL_FIELDS =
+        'code,product_name,product_name_de,brands,categories_tags,labels_tags,ingredients_text,nova_group,serving_quantity,image_front_url,nutriments'
+
+      const PROBES = [
+        {
+          id: 'small',
+          title: '1. Kleine Antwort (1 Feld)',
+          url: `${FUNCTION_BASE}/api/v3/product/${BARCODE}?fields=product_name`,
+        },
+        {
+          id: 'full',
+          title: '2. Große Antwort (alle Felder wie die App)',
+          url: `${FUNCTION_BASE}/api/v3/product/${BARCODE}?fields=${FULL_FIELDS}`,
+        },
+        {
+          id: 'search',
+          title: '3. Suche',
+          url: `${FUNCTION_BASE}/cgi/search.pl?search_terms=nutella&search_simple=1&action=process&json=1&page_size=10&fields=code,product_name`,
+        },
+        {
+          id: 'direct-off',
+          title: '4. Direkt gegen world.openfoodfacts.org (ohne Proxy, erwartet CORS-Fehler)',
+          url: `https://world.openfoodfacts.org/api/v3/product/${BARCODE}?fields=product_name`,
+        },
+      ]
+
+      const results = {}
+      const probesEl = document.getElementById('probes')
+
+      for (const probe of PROBES) {
+        const btn = document.createElement('button')
+        btn.textContent = `${probe.title}\n${probe.url}`
+        btn.style.whiteSpace = 'pre-wrap'
+        btn.addEventListener('click', () => run(probe, btn))
+        probesEl.appendChild(btn)
+      }
+
+      async function run(probe, btn) {
+        btn.disabled = true
+        const started = performance.now()
+        try {
+          const res = await fetch(probe.url)
+          const ms = Math.round(performance.now() - started)
+          const buf = await res.arrayBuffer()
+          results[probe.id] = [
+            `HTTP ${res.status} ${res.statusText} (${ms} ms)`,
+            `content-type: ${res.headers.get('content-type')}`,
+            `content-length header: ${res.headers.get('content-length')}`,
+            `bytes empfangen: ${buf.byteLength}`,
+            `preview: ${new TextDecoder().decode(buf.slice(0, 150))}`,
+          ].join('\n')
+        } catch (err) {
+          const ms = Math.round(performance.now() - started)
+          results[probe.id] = [
+            `EXCEPTION nach ${ms} ms (fetch selbst fehlgeschlagen, keine HTTP-Antwort)`,
+            `name: ${err && err.name}`,
+            `message: ${err && err.message}`,
+          ].join('\n')
+        } finally {
+          btn.disabled = false
+          updateReport()
+        }
+      }
+
+      function updateReport() {
+        const lines = [`UA: ${navigator.userAgent}`, `origin: ${location.origin}`, '']
+        for (const probe of PROBES) {
+          lines.push(probe.title)
+          lines.push(results[probe.id] ?? '(noch nicht getestet)')
+          lines.push('')
+        }
+        document.getElementById('report').value = lines.join('\n').trim()
+      }
+
+      document.getElementById('copy').addEventListener('click', async () => {
+        const ta = document.getElementById('report')
+        ta.select()
+        try {
+          await navigator.clipboard.writeText(ta.value)
+        } catch {
+          /* select() reicht als Fallback zum manuellen Kopieren */
+        }
+      })
+
+      updateReport()
+    </script>
+  </body>
+</html>
