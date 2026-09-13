@@ -100,11 +100,21 @@ async function fetchWithRetry(url: string): Promise<SearchResponse> {
     console.error(`OFF-Suche: Fehlerstatus (Versuch ${attempt}/${MAX_ATTEMPTS})`, response.status, response.statusText)
 
     const isTransient = TRANSIENT_STATUS_CODES.has(response.status)
-    if (!isTransient || attempt === MAX_ATTEMPTS) break
+    if (!isTransient) {
+      throw new Error(`Open-Food-Facts-Suche fehlgeschlagen (Status ${response.status}).`)
+    }
+    if (attempt === MAX_ATTEMPTS) break
     await delay(RETRY_DELAY_MS * attempt)
   }
 
-  throw new Error(`Open-Food-Facts-Suche fehlgeschlagen (Status ${lastStatus}).`)
+  // Der Legacy-Endpunkt antwortet mit 502/503/504 überdurchschnittlich oft
+  // gerade bei Suchbegriffen ohne Treffer (die Volltextsuche kann dann nicht
+  // früh aus dem Cache bedient werden und läuft eher in ein Backend-Timeout)
+  // – nach erschöpften Retries wird dauerhaftes 502/503/504 daher als "kein
+  // Treffer" statt als harter Fehler behandelt, statt Nutzer:innen mit einem
+  // Status-Code zu konfrontieren, der meist gar keinen echten Ausfall meint.
+  console.warn(`OFF-Suche: weiterhin Status ${lastStatus} nach ${MAX_ATTEMPTS} Versuchen, werte als "kein Treffer".`)
+  return { products: [] }
 }
 
 function isGermanProduct(hit: SearchHit): boolean {

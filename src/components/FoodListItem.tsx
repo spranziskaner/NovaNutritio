@@ -20,6 +20,17 @@ export function FoodListItem({
     <button
       type="button"
       onClick={onSelect}
+      // iOS Safari unterdrückt den synthetischen `click`, wenn sich die Seite
+      // zwischen Touch-Start und -Ende verschiebt – genau das passiert hier,
+      // weil das Antippen eines Treffers während offener virtueller Tastatur
+      // deren Einblenden-Animation auslöst (Layout verschiebt sich unter dem
+      // Finger). `touchend` feuert davon unbeeinflusst, `preventDefault`
+      // verhindert den doppelten Aufruf durch den nachfolgenden (u. U.
+      // unterdrückten) Click.
+      onTouchEnd={(e) => {
+        e.preventDefault()
+        onSelect()
+      }}
       className={`w-full rounded-xl border px-4 py-3 text-left transition-colors ${
         active
           ? 'border-amber-500 bg-amber-50 dark:border-amber-400 dark:bg-amber-500/10'
