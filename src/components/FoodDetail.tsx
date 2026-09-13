@@ -2,8 +2,10 @@ import type { RemoteFood } from '../types'
 import { assessFood } from '../lib/assessment'
 import { CATEGORY_LABELS } from '../data/categories'
 import { NovaBadge } from './NovaBadge'
-import { VerdictBadge } from './VerdictBadge'
+import { GesamtsignalBadge } from './GesamtsignalBadge'
 import { GiPill } from './GiPill'
+import { GlBadge } from './GlBadge'
+import { OmegaBadge } from './OmegaBadge'
 
 function MacroStat({ label, value, unit = 'g' }: { label: string; value?: number; unit?: string }) {
   if (value === undefined) return null
@@ -40,7 +42,7 @@ export function FoodDetail({ food }: { food: RemoteFood }) {
             <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-50">{food.name}</h2>
           </div>
         </div>
-        <VerdictBadge verdict={a.verdict} headline={a.headline} />
+        <GesamtsignalBadge signal={a.signal} headline={a.headline} />
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -59,18 +61,17 @@ export function FoodDetail({ food }: { food: RemoteFood }) {
             )}
           </div>
         </div>
-        <div className="rounded-lg bg-neutral-50 px-3 py-2 text-center dark:bg-neutral-800/60">
-          <div className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-            {a.glValue === null ? 'n/a' : a.glValue.toFixed(1)}
-            {a.glValue !== null && (
-              <span className="ml-1 text-xs font-normal opacity-80">({a.glCategory})</span>
-            )}
-          </div>
+        <div className="flex flex-col items-center justify-center gap-1 rounded-lg bg-neutral-50 px-3 py-2 text-center dark:bg-neutral-800/60">
+          <GlBadge category={a.glCategory} value={a.glValue} />
           <div className="text-xs text-neutral-500 dark:text-neutral-400">
             Glykämische Last · {food.portionG} g Portion
           </div>
         </div>
-        <div className="col-span-2 flex items-center justify-center gap-2 rounded-lg bg-neutral-50 px-3 py-2 dark:bg-neutral-800/60 sm:col-span-2">
+        <div className="flex flex-col items-center justify-center gap-1 rounded-lg bg-neutral-50 px-3 py-2 text-center dark:bg-neutral-800/60">
+          <OmegaBadge omega={food.omega} />
+          <div className="text-xs text-neutral-500 dark:text-neutral-400">Omega-6/3-Verhältnis</div>
+        </div>
+        <div className="flex items-center justify-center gap-2 rounded-lg bg-neutral-50 px-3 py-2 dark:bg-neutral-800/60">
           <NovaBadge nova={food.nova} />
         </div>
       </div>
@@ -93,7 +94,7 @@ export function FoodDetail({ food }: { food: RemoteFood }) {
 
       <div className="mt-6">
         <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
-          Einschätzung zum Weight-Set-Point
+          Begründung zum Gesamtsignal
         </h3>
         <ul className="mt-2 space-y-1.5">
           {a.reasoning.map((r) => (

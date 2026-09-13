@@ -2,6 +2,8 @@ import type { FoodCategory, GiSource, NovaGroup, RemoteFood } from '../types'
 import { lookupGi } from './giReference'
 import { estimateGiFromMacros } from './giEstimate'
 import { fuzzyScore } from './fuzzySearch'
+import { assessOmega } from './omegaAssessment'
+import { resolvePortionDefault } from './portionDefaults'
 
 const API_BASE = 'https://world.openfoodfacts.org'
 
@@ -14,6 +16,8 @@ const FIELDS = [
   'product_name_de',
   'brands',
   'categories_tags',
+  'labels_tags',
+  'ingredients_text',
   'nova_group',
   'serving_quantity',
   'image_front_small_url',
@@ -34,6 +38,8 @@ interface OffProduct {
   product_name_de?: string
   brands?: string
   categories_tags?: string[]
+  labels_tags?: string[]
+  ingredients_text?: string
   nova_group?: number
   serving_quantity?: number
   image_front_small_url?: string
@@ -129,7 +135,16 @@ function mapProduct(p: OffProduct): RemoteFood | null {
   const category = guessCategory(p.categories_tags ?? [])
   const giMatch = lookupGi(name)
   const portionG =
-    p.serving_quantity && p.serving_quantity > 0 ? Math.round(p.serving_quantity) : (giMatch?.portionG ?? 100)
+    p.serving_quantity && p.serving_quantity > 0
+      ? Math.round(p.serving_quantity)
+      : (giMatch?.portionG ?? resolvePortionDefault(p.categories_tags ?? [], category))
+
+  const omega = assessOmega({
+    category,
+    categoriesTags: p.categories_tags ?? [],
+    labelsTags: p.labels_tags ?? [],
+    ingredientsText: p.ingredients_text,
+  })
 
   let gi: number | null
   let giSource: GiSource
@@ -165,6 +180,7 @@ function mapProduct(p: OffProduct): RemoteFood | null {
     proteinPer100g: p.nutriments?.proteins_100g,
     fatPer100g: p.nutriments?.fat_100g,
     nova,
+    omega,
     novaNote: nova
       ? `NOVA-Gruppe ${nova} laut Open Food Facts (automatisch aus der Zutatenliste ermittelt).`
       : 'Open Food Facts hat für dieses Produkt (noch) keine NOVA-Einstufung hinterlegt.',

@@ -88,7 +88,7 @@ function App() {
         <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
           <h1 className="text-2xl font-bold tracking-tight">NovaNutritio</h1>
           <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-            Glykämischer Index, NOVA-Verarbeitungsgrad und Weight-Set-Point-Einschätzung – live über die{' '}
+            Glykämischer Index & Last, NOVA-Verarbeitungsgrad und Omega-6/3-Einordnung – live über die{' '}
             <a
               href="https://world.openfoodfacts.org"
               target="_blank"

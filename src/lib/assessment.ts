@@ -1,34 +1,17 @@
-import type { AssessableFood, NovaGroup } from '../types'
+import type { AssessableFood, NovaGroup, OmegaCategory } from '../types'
 
 export type GiCategory = 'niedrig' | 'mittel' | 'hoch' | 'n/a'
 export type GlCategory = 'niedrig' | 'mittel' | 'hoch' | 'n/a'
-
-export type SetPointVerdict =
-  | 'freundlich'
-  | 'neutral'
-  | 'belastend'
-  | 'stark-belastend'
-  | 'unbekannt'
+export type GesamtsignalStatus = 'gruen' | 'gelb' | 'rot' | 'unvollstaendig'
 
 export interface Assessment {
   giCategory: GiCategory
   glCategory: GlCategory
   /** Glykämische Last für die angegebene Referenzportion. */
   glValue: number | null
-  novaPoints: number | null
-  glycemicPoints: number
-  /** Gesamtscore 0 (am set-point-freundlichsten) bis 7 (am belastendsten), null wenn NOVA unbekannt. */
-  score: number | null
-  verdict: SetPointVerdict
+  signal: GesamtsignalStatus
   headline: string
   reasoning: string[]
-}
-
-const NOVA_POINTS: Record<NovaGroup, number> = {
-  1: 0,
-  2: 1,
-  3: 2,
-  4: 4,
 }
 
 const NOVA_LABEL: Record<NovaGroup, string> = {
@@ -62,91 +45,79 @@ export function glCategoryOf(gl: number | null): GlCategory {
   return 'hoch'
 }
 
-function glycemicPointsOf(glCategory: GlCategory): number {
-  switch (glCategory) {
-    case 'n/a':
-    case 'niedrig':
-      return 0
-    case 'mittel':
-      return 1
-    case 'hoch':
-      return 3
-  }
-}
-
-const VERDICT_HEADLINE: Record<SetPointVerdict, string> = {
-  freundlich: 'Set-Point-freundlich',
-  neutral: 'Neutral – in Maßen gut vertretbar',
-  belastend: 'Set-Point-belastend',
-  'stark-belastend': 'Stark Set-Point-belastend',
-  unbekannt: 'Einschätzung unvollständig',
-}
-
-function verdictOf(score: number): SetPointVerdict {
-  if (score <= 1) return 'freundlich'
-  if (score <= 3) return 'neutral'
-  if (score <= 5) return 'belastend'
-  return 'stark-belastend'
+const SIGNAL_HEADLINE: Record<GesamtsignalStatus, string> = {
+  gruen: 'Gesamtsignal: unauffällig',
+  gelb: 'Gesamtsignal: teilweise auffällig',
+  rot: 'Gesamtsignal: mehrfach auffällig',
+  unvollstaendig: 'Gesamtsignal: unvollständige Datenlage',
 }
 
 /**
- * Vereinfachte, transparente Heuristik in Anlehnung an das
- * Weight-Set-Point-Konzept von Dr. Andrew Jenkinson ("Wie schlank
- * sein Körper sein möchte"): Ultra-verarbeitete Lebensmittel liefern
- * konzentrierte, schnell verfügbare Energie bei geringer Sättigung
- * und hebeln so die Sättigungssignale (u. a. Leptin) aus – das kann
- * den Sollwert der Körperfettregulation langfristig erhöhen. Starke
- * Blutzucker-/Insulinspitzen (hohe glykämische Last) verstärken diesen
- * Effekt zusätzlich. Der NOVA-Verarbeitungsgrad geht daher stärker
- * gewichtet ein als der glykämische Faktor.
- *
- * Dies ist ein didaktisches Hilfsmittel, keine medizinische Bewertung
- * und ersetzt keine individuelle Ernährungsberatung.
+ * Kombiniertes Gesamtsignal aus NOVA-Verarbeitungsgrad, glykämischer Last
+ * und Omega-6/3-Einordnung. Wird nur berechnet, wenn alle drei Werte
+ * bekannt sind – bei einem fehlenden Wert gibt es bewusst kein
+ * optimistisches Auffüllen, sondern "unvollständige Datenlage". Die
+ * Spezifikation nennt nur "NOVA 4 UND (GL hoch ODER Omega ungünstig)" für
+ * Rot; den Fall zweier schlechter Kriterien ohne NOVA 4 lässt sie offen –
+ * hier gilt daher allgemein: zwei oder mehr schlechte Kriterien = Rot,
+ * genau eines = Gelb, keines = Grün.
  */
+function signalOf(nova: NovaGroup | null, glCategory: GlCategory, omegaCategory: OmegaCategory): GesamtsignalStatus {
+  if (nova === null || glCategory === 'n/a' || omegaCategory === 'unbekannt') return 'unvollstaendig'
+
+  const badCount = [nova === 4, glCategory === 'hoch', omegaCategory === 'unguenstig'].filter(Boolean).length
+  if (badCount >= 2) return 'rot'
+  if (badCount === 1) return 'gelb'
+  return 'gruen'
+}
+
 export function assessFood(food: AssessableFood): Assessment {
   const giCategory = giCategoryOf(food.gi)
   const glValue = glycemicLoad(food)
   const glCategory = glCategoryOf(glValue)
-
-  const novaPoints = food.nova === null ? null : NOVA_POINTS[food.nova]
-  const glycemicPoints = glycemicPointsOf(glCategory)
-  const score = novaPoints === null ? null : novaPoints + glycemicPoints
-  const verdict = novaPoints === null ? 'unbekannt' : verdictOf(score as number)
+  const omegaCategory = food.omega.category
+  const signal = signalOf(food.nova, glCategory, omegaCategory)
 
   const reasoning: string[] = []
 
   if (food.nova === null) {
+    reasoning.push('NOVA-Verarbeitungsgrad für dieses Produkt nicht bekannt.')
+  } else if (food.nova === 4) {
     reasoning.push(
-      'NOVA-Verarbeitungsgrad für dieses Produkt nicht bekannt – die Gesamteinschätzung bezieht sich daher nur auf den glykämischen Faktor.',
-    )
-  } else if (food.nova === 1) {
-    reasoning.push(
-      'Unverarbeitet bzw. minimal verarbeitet – Ballaststoffe, Struktur und natürliche Sättigungssignale bleiben erhalten.',
-    )
-  } else if (food.nova === 2) {
-    reasoning.push(
-      'Verarbeitete kulinarische Zutat: in kleinen Mengen als Teil einer Zubereitung unproblematisch, liefert aber konzentrierte Kalorien.',
-    )
-  } else if (food.nova === 3) {
-    reasoning.push(
-      'Verarbeitetes Lebensmittel aus wenigen erkennbaren Zutaten – meist unproblematisch in normalen Mengen.',
+      'Ultra-verarbeitet (NOVA 4): industrielle Formulierung, die Sättigungssignale abschwächen kann.',
     )
   } else {
-    reasoning.push(
-      'Ultra-verarbeitet: industrielle Formulierung mit Zusatzstoffen, die Sättigungssignale abschwächen und Überkonsum begünstigen können.',
-    )
+    reasoning.push(`NOVA-Gruppe ${food.nova}: ${novaLabel(food.nova)}.`)
   }
 
-  if (glCategory === 'niedrig' || glCategory === 'n/a') {
+  if (glCategory === 'n/a') {
     reasoning.push(
-      glValue === null
-        ? 'Keine relevante Kohlenhydratmenge, daher kaum Einfluss auf Blutzucker/Insulin.'
-        : 'Niedrige glykämische Last der Portion – moderater Blutzucker-/Insulinanstieg.',
+      food.gi === null
+        ? 'GI/GL für dieses Produkt nicht verfügbar.'
+        : 'Keine relevante Kohlenhydratmenge, daher kaum Einfluss auf Blutzucker/Insulin.',
     )
+  } else if (glCategory === 'niedrig') {
+    reasoning.push('Niedrige glykämische Last der Portion – moderater Blutzucker-/Insulinanstieg.')
   } else if (glCategory === 'mittel') {
     reasoning.push('Mittlere glykämische Last der Portion – spürbarer, aber begrenzter Blutzuckeranstieg.')
   } else {
     reasoning.push('Hohe glykämische Last der Portion – deutlicher Blutzucker-/Insulinanstieg möglich.')
+  }
+
+  if (omegaCategory === 'unbekannt') {
+    reasoning.push('Keine Omega-6/3-Einordnung verfügbar.')
+  } else if (food.omega.isWalnutSpecialCase) {
+    reasoning.push('Enthält reichlich Omega-3 UND Omega-6 – Sonderfall, nicht pauschal bewertet.')
+  } else if (omegaCategory === 'guenstig') {
+    reasoning.push('Günstiges Omega-6/3-Verhältnis laut Kategorie-Zuordnung.')
+  } else if (omegaCategory === 'unguenstig') {
+    reasoning.push('Ungünstiges Omega-6/3-Verhältnis laut Kategorie-/Zutaten-Zuordnung.')
+  } else {
+    reasoning.push('Neutrale Omega-6/3-Einordnung.')
+  }
+
+  if (food.omega.provenanceUnknown) {
+    reasoning.push('Herkunft (Weide vs. Mast) nicht bekannt – Einordnung kann abweichen.')
   }
 
   if ((food.fiberPer100g ?? 0) >= 5) {
@@ -160,11 +131,8 @@ export function assessFood(food: AssessableFood): Assessment {
     giCategory,
     glCategory,
     glValue,
-    novaPoints,
-    glycemicPoints,
-    score,
-    verdict,
-    headline: VERDICT_HEADLINE[verdict],
+    signal,
+    headline: SIGNAL_HEADLINE[signal],
     reasoning,
   }
 }

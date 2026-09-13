@@ -13,21 +13,29 @@ export function AboutSection() {
           verschieben. Starke Blutzucker- und Insulinspitzen verstärken diesen Effekt zusätzlich.
         </p>
         <p>
-          Diese App kombiniert deshalb zwei Kennzahlen: den{' '}
-          <strong className="text-neutral-800 dark:text-neutral-200">glykämischen Index (GI)</strong>{' '}
-          bzw. die daraus abgeleitete glykämische Last (GI × Kohlenhydratmenge der Portion) sowie
-          den <strong className="text-neutral-800 dark:text-neutral-200">Verarbeitungsgrad nach NOVA</strong>{' '}
-          (1 = unverarbeitet bis 4 = ultra-verarbeitet). Der NOVA-Wert fließt stärker gewichtet in
-          die Gesamteinschätzung ein, da laut Jenkinson gerade der Verarbeitungsgrad – unabhängig
-          vom Blutzuckerwert – die Sättigungssignale beeinflusst.
+          Diese App kombiniert deshalb drei Kennzahlen zu einem{' '}
+          <strong className="text-neutral-800 dark:text-neutral-200">Gesamtsignal</strong>: den{' '}
+          <strong className="text-neutral-800 dark:text-neutral-200">Verarbeitungsgrad nach NOVA</strong>{' '}
+          (1 = unverarbeitet bis 4 = ultra-verarbeitet), die{' '}
+          <strong className="text-neutral-800 dark:text-neutral-200">glykämische Last (GL)</strong>{' '}
+          (Glykämischer Index × Kohlenhydratmenge der Portion – aussagekräftiger für die
+          Insulinwirkung als der GI allein) sowie die{' '}
+          <strong className="text-neutral-800 dark:text-neutral-200">Omega-6/3-Einordnung</strong>{' '}
+          des Lebensmittels. Rot bedeutet: NOVA 4 zusammen mit hoher GL oder ungünstigem
+          Omega-Verhältnis, oder zwei der drei Kriterien fallen ungünstig aus. Gelb heißt: genau
+          eines der drei Kriterien ist auffällig, Grün: alle drei sind unauffällig. Fehlt einer der
+          drei Werte, wird bewusst kein Gesamtsignal berechnet, sondern „unvollständige Datenlage"
+          angezeigt.
         </p>
         <p className="italic">
-          Hinweis: Alle Werte sind Richtwerte aus öffentlichen Tabellen und schwanken je nach
-          Sorte, Reifegrad und Zubereitung. Liegt für ein Produkt kein gemessener GI-Wert vor,
-          schätzt die App ihn per Formel aus Zucker-, Ballaststoff-, Fett- und Proteingehalt –
-          das ist eine grobe Näherung, kein Laborwert. Die Einschätzung ist ein didaktisches
-          Hilfsmittel, keine medizinische Bewertung und ersetzt keine individuelle
-          Ernährungsberatung.
+          Hinweis: Alle Werte sind Richtwerte aus öffentlichen Tabellen und Kategorie-Zuordnungen
+          und schwanken je nach Sorte, Reifegrad, Zubereitung und Herkunft. Liegt für ein Produkt
+          kein gemessener GI-Wert vor, schätzt die App ihn per Formel aus Zucker-, Ballaststoff-,
+          Fett- und Proteingehalt – das ist eine grobe Näherung, kein Laborwert. Omega-6/3 wird nie
+          berechnet, sondern ausschließlich über Kategorie-, Label- und Zutatenlisten-Abgleich
+          eingeordnet; ohne Treffer zeigt die App „keine Einordnung verfügbar" statt zu raten. Die
+          Einschätzung ist ein didaktisches Hilfsmittel, keine medizinische Bewertung und ersetzt
+          keine individuelle Ernährungsberatung.
         </p>
       </div>
     </details>

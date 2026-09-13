@@ -1,0 +1,22 @@
+{
+  "byCategoryTagKeywords": [
+    { "keywords": ["potato", "kartoffel"], "portionG": 150 },
+    { "keywords": ["rice"], "portionG": 150 },
+    { "keywords": ["bread", "brot"], "portionG": 30 },
+    { "keywords": ["legume", "lentil", "bean", "chickpea", "huelsenfruecht"], "portionG": 150 }
+  ],
+  "byFoodCategory": {
+    "obst": 120,
+    "gemuese": 150,
+    "getreide": 75,
+    "huelsenfruechte": 150,
+    "nuesse-samen": 30,
+    "milchprodukte": 150,
+    "fleisch-fisch-eier": 120,
+    "suess-snacks": 30,
+    "getraenke": 250,
+    "fertiggerichte-fastfood": 300,
+    "oele-fette": 15,
+    "sonstiges": 100
+  }
+}
