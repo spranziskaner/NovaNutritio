@@ -69,7 +69,7 @@ function App() {
       <header className="border-b-2 border-amber-700/40 bg-white dark:border-amber-500/30 dark:bg-stone-900">
         <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
           <h1 className="font-display text-3xl font-bold tracking-[0.08em] text-stone-900 uppercase dark:text-stone-50">
-            NovaNutritio
+            Nova Nutritio
           </h1>
           <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">
             Glykämischer Index & Last, NOVA-Verarbeitungsgrad und Omega-6/3-Einordnung – vollständig lokal,
