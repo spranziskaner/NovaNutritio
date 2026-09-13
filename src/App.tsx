@@ -13,6 +13,7 @@ const MIN_QUERY_LENGTH = 2
 function App() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<FoodSummary[]>([])
+  const [searchError, setSearchError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   // Vollständige Bewertung (GI/GL/NOVA/Omega) wird erst nachgeladen, wenn ein
   // Treffer ausgewählt wird – die Suche selbst liefert nur Anzeigefelder.
@@ -39,15 +40,18 @@ function App() {
     const timer = setTimeout(() => {
       const requestId = ++searchRequestIdRef.current
       setSearchLoading(true)
+      setSearchError(null)
       searchFoods(trimmed)
         .then((foods) => {
           if (searchRequestIdRef.current !== requestId) return
           setResults(foods)
           setSelectedId((current) => (current && foods.some((f) => f.id === current) ? current : (foods[0]?.id ?? null)))
         })
-        .catch(() => {
+        .catch((err: unknown) => {
           if (searchRequestIdRef.current !== requestId) return
+          console.error('Suche fehlgeschlagen:', err)
           setResults([])
+          setSearchError(err instanceof Error ? err.message : 'Suche fehlgeschlagen.')
         })
         .finally(() => {
           if (searchRequestIdRef.current === requestId) setSearchLoading(false)
@@ -73,8 +77,9 @@ function App() {
         if (detailRequestIdRef.current !== requestId) return
         setDetail(food)
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (detailRequestIdRef.current !== requestId) return
+        console.error('Produktdetails laden fehlgeschlagen:', err)
         setDetail(null)
       })
       .finally(() => {
@@ -138,13 +143,19 @@ function App() {
                   Suche läuft …
                 </p>
               )}
-              {!queryTooShort && !searchLoading && results.length === 0 && (
+              {!queryTooShort && !searchLoading && searchError && (
+                <p className="rounded-xl border border-dashed border-rose-300 px-4 py-6 text-center text-sm text-rose-600 dark:border-rose-800 dark:text-rose-400">
+                  Suche fehlgeschlagen: {searchError}
+                </p>
+              )}
+              {!queryTooShort && !searchLoading && !searchError && results.length === 0 && (
                 <p className="rounded-xl border border-dashed border-stone-300 px-4 py-6 text-center text-sm text-stone-500 dark:border-stone-700 dark:text-stone-400">
                   Kein Lebensmittel gefunden.
                 </p>
               )}
               {!queryTooShort &&
                 !searchLoading &&
+                !searchError &&
                 results.map((f) => (
                   <FoodListItem key={f.id} food={f} active={f.id === selectedId} onSelect={() => handleSelect(f.id)} />
                 ))}

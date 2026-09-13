@@ -12,6 +12,15 @@ interface SearchHit {
   nova_group?: number
 }
 
+interface SearchSuccess {
+  hits: SearchHit[]
+}
+
+interface SearchFailure {
+  title?: string
+  description?: string
+}
+
 /**
  * Durchsucht ausschließlich Open Food Facts über die offizielle SDK
  * (`@openfoodfacts/openfoodfacts-nodejs`, https://github.com/openfoodfacts/openfoodfacts-js).
@@ -25,16 +34,32 @@ interface SearchHit {
  * statt für jeden Treffer der Liste unnötig Nährwerte anzufragen.
  */
 export async function searchFoods(query: string, pageSize = 30): Promise<FoodSummary[]> {
-  const { data } = await search.searchGet({
+  // Die generierten SDK-Typen bilden das Antwortformat als tief verschachtelten
+  // bedingten Typ ab (Alpha-Software, Stand SDK 2.0.0-alpha) – siehe Kommentar
+  // an `OffProductV3` in `offProduct.ts` für die gleiche Begründung. Wir
+  // arbeiten hier bewusst mit einem eigenen, flachen Typ für die beiden
+  // tatsächlich möglichen Antwortformen (Treffer vs. Fehlerantwort).
+  const { data, error, response } = (await search.searchGet({
     q: query,
     langs: 'de,en',
     page_size: pageSize,
     fields: SEARCH_FIELDS,
-  })
+  })) as { data?: SearchSuccess | SearchFailure; error?: unknown; response: Response }
 
-  if (!data || !('hits' in data)) return []
+  if (error) {
+    console.error('OFF-Suche: Validierungsfehler (422)', error)
+    throw new Error('Open-Food-Facts-Suche: ungültige Anfrage (siehe Konsole).')
+  }
+  if (!data) {
+    console.error('OFF-Suche: keine Antwort', response.status, response.statusText)
+    throw new Error(`Open-Food-Facts-Suche fehlgeschlagen (Status ${response.status}).`)
+  }
+  if (!('hits' in data)) {
+    console.error('OFF-Suche: Fehlerantwort', data)
+    throw new Error(data.description || data.title || 'Open-Food-Facts-Suche lieferte eine Fehlerantwort.')
+  }
 
-  return (data.hits as SearchHit[])
+  return data.hits
     .filter((hit): hit is SearchHit & { code: string } => Boolean(hit.code))
     .map(toFoodSummary)
 }
