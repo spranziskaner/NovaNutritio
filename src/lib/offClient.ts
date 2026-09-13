@@ -26,17 +26,27 @@ function delay(ms: number): Promise<void> {
  */
 const retryingFetch: typeof fetch = async (input, init) => {
   const attemptFetch = () => fetch(input instanceof Request ? input.clone() : input, init)
+  const requestUrl = input instanceof Request ? input.url : String(input)
 
-  let response = await attemptFetch()
-  for (
-    let attempt = 2;
-    attempt <= MAX_ATTEMPTS && !response.ok && TRANSIENT_STATUS_CODES.has(response.status);
-    attempt++
-  ) {
-    await delay(RETRY_DELAY_MS * (attempt - 1))
-    response = await attemptFetch()
+  try {
+    let response = await attemptFetch()
+    for (
+      let attempt = 2;
+      attempt <= MAX_ATTEMPTS && !response.ok && TRANSIENT_STATUS_CODES.has(response.status);
+      attempt++
+    ) {
+      await delay(RETRY_DELAY_MS * (attempt - 1))
+      response = await attemptFetch()
+    }
+    return response
+  } catch (err) {
+    // Reichert die Exception um die tatsächlich von der SDK gebaute URL an –
+    // ohne Zugriff auf ein Gerät mit Entwicklertools (z. B. per iPhone-
+    // Fehlerbericht) ist sonst nicht erkennbar, wohin der fehlgeschlagene
+    // Request überhaupt ging.
+    const reason = err instanceof Error ? err.message : String(err)
+    throw new Error(`Fetch fehlgeschlagen: ${reason} — URL: ${requestUrl}`)
   }
-  return response
 }
 
 /**
