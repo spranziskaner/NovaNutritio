@@ -6,17 +6,25 @@ const STYLES: Record<GesamtsignalStatus, string> = {
   gelb: 'bg-amber-100 text-amber-800 ring-amber-600/20 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-400/30',
   rot: 'bg-rose-100 text-rose-800 ring-rose-600/20 dark:bg-rose-500/15 dark:text-rose-300 dark:ring-rose-400/30',
   unvollstaendig:
-    'bg-neutral-100 text-neutral-600 ring-neutral-500/20 dark:bg-neutral-800 dark:text-neutral-400 dark:ring-neutral-500/30',
+    'bg-stone-100 text-stone-600 ring-stone-500/20 dark:bg-stone-800 dark:text-stone-400 dark:ring-stone-500/30',
 }
 
 const DOT: Record<GesamtsignalStatus, string> = {
   gruen: 'bg-emerald-500',
   gelb: 'bg-amber-500',
   rot: 'bg-rose-500',
-  unvollstaendig: 'bg-neutral-400',
+  unvollstaendig: 'bg-stone-400',
 }
 
-export function GesamtsignalBadge({ signal, headline }: { signal: GesamtsignalStatus; headline: string }) {
+export function GesamtsignalBadge({
+  signal,
+  headline,
+  incomplete = false,
+}: {
+  signal: GesamtsignalStatus
+  headline: string
+  incomplete?: boolean
+}) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 ring-inset ${STYLES[signal]}`}
@@ -24,6 +32,15 @@ export function GesamtsignalBadge({ signal, headline }: { signal: GesamtsignalSt
     >
       <span className={`h-2 w-2 rounded-full ${DOT[signal]}`} />
       {headline}
+      {incomplete && signal !== 'unvollstaendig' && (
+        <span
+          aria-hidden="true"
+          className="opacity-70"
+          title="Basiert nur auf den bekannten Kriterien – nicht alle drei Werte liegen vor."
+        >
+          *
+        </span>
+      )}
     </span>
   )
 }

@@ -33,14 +33,14 @@ export function Filters({
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder="Lebensmittel oder Marke suchen …"
-          className="w-full rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-neutral-900 placeholder-neutral-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+          className="w-full rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-stone-900 placeholder-stone-400 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/30 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
         />
         {canScan && (
           <button
             type="button"
             onClick={onScanClick}
             title="Barcode scannen"
-            className="flex-none rounded-xl border border-neutral-300 bg-white px-3 text-lg dark:border-neutral-700 dark:bg-neutral-900"
+            className="flex-none rounded-xl border border-stone-300 bg-white px-3 text-lg dark:border-stone-700 dark:bg-stone-900"
           >
             📷
           </button>
@@ -62,11 +62,11 @@ export function Filters({
           value={barcode}
           onChange={(e) => setBarcode(e.target.value)}
           placeholder="Barcode manuell eingeben (EAN) …"
-          className="w-full rounded-xl border border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/30 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+          className="w-full rounded-xl border border-stone-300 bg-white px-4 py-2 text-sm text-stone-900 placeholder-stone-400 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/30 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100"
         />
         <button
           type="submit"
-          className="flex-none rounded-xl border border-neutral-300 bg-white px-3 text-sm font-medium text-neutral-700 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300"
+          className="flex-none rounded-xl border border-stone-300 bg-white px-3 text-sm font-medium text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300"
         >
           Suchen
         </button>
@@ -75,7 +75,7 @@ export function Filters({
         <select
           value={category}
           onChange={(e) => onCategoryChange(e.target.value as FoodCategory | 'alle')}
-          className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-700 focus:border-teal-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300"
+          className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 focus:border-amber-500 focus:outline-none dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300"
         >
           <option value="alle">Alle Kategorien</option>
           {CATEGORY_ORDER.map((c) => (
@@ -89,7 +89,7 @@ export function Filters({
           onChange={(e) =>
             onNovaChange(e.target.value === 'alle' ? 'alle' : (Number(e.target.value) as NovaGroup))
           }
-          className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-700 focus:border-teal-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300"
+          className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 focus:border-amber-500 focus:outline-none dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300"
         >
           <option value="alle">Alle NOVA-Gruppen</option>
           <option value="1">NOVA 1 · unverarbeitet</option>

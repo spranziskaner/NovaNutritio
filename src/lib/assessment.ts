@@ -10,6 +10,8 @@ export interface Assessment {
   /** Glykämische Last für die angegebene Referenzportion. */
   glValue: number | null
   signal: GesamtsignalStatus
+  /** true, wenn nicht alle drei Kriterien (NOVA, GL, Omega-6/3) bekannt waren. */
+  signalIncomplete: boolean
   headline: string
   reasoning: string[]
 }
@@ -54,21 +56,33 @@ const SIGNAL_HEADLINE: Record<GesamtsignalStatus, string> = {
 
 /**
  * Kombiniertes Gesamtsignal aus NOVA-Verarbeitungsgrad, glykämischer Last
- * und Omega-6/3-Einordnung. Wird nur berechnet, wenn alle drei Werte
- * bekannt sind – bei einem fehlenden Wert gibt es bewusst kein
- * optimistisches Auffüllen, sondern "unvollständige Datenlage". Die
- * Spezifikation nennt nur "NOVA 4 UND (GL hoch ODER Omega ungünstig)" für
- * Rot; den Fall zweier schlechter Kriterien ohne NOVA 4 lässt sie offen –
- * hier gilt daher allgemein: zwei oder mehr schlechte Kriterien = Rot,
- * genau eines = Gelb, keines = Grün.
+ * und Omega-6/3-Einordnung. Wird aus den jeweils bekannten Kriterien
+ * berechnet – fehlt eines (z. B. keine Omega-Einordnung möglich), zählt es
+ * weder als gut noch als schlecht, sondern wird einfach ausgeklammert
+ * ("signalIncomplete"). "Unvollständige Datenlage" gibt es nur noch, wenn
+ * KEIN einziges Kriterium bekannt ist. Die Spezifikation nennt nur "NOVA 4
+ * UND (GL hoch ODER Omega ungünstig)" für Rot; den Fall zweier schlechter
+ * Kriterien ohne NOVA 4 lässt sie offen – hier gilt daher allgemein
+ * (relativ zur Anzahl bekannter Kriterien): zwei oder mehr schlechte
+ * Kriterien = Rot, genau eines = Gelb, keines = Grün.
  */
-function signalOf(nova: NovaGroup | null, glCategory: GlCategory, omegaCategory: OmegaCategory): GesamtsignalStatus {
-  if (nova === null || glCategory === 'n/a' || omegaCategory === 'unbekannt') return 'unvollstaendig'
+function signalOf(
+  nova: NovaGroup | null,
+  glCategory: GlCategory,
+  omegaCategory: OmegaCategory,
+): { status: GesamtsignalStatus; incomplete: boolean } {
+  const known: boolean[] = []
+  if (nova !== null) known.push(nova === 4)
+  if (glCategory !== 'n/a') known.push(glCategory === 'hoch')
+  if (omegaCategory !== 'unbekannt') known.push(omegaCategory === 'unguenstig')
 
-  const badCount = [nova === 4, glCategory === 'hoch', omegaCategory === 'unguenstig'].filter(Boolean).length
-  if (badCount >= 2) return 'rot'
-  if (badCount === 1) return 'gelb'
-  return 'gruen'
+  if (known.length === 0) return { status: 'unvollstaendig', incomplete: true }
+
+  const badCount = known.filter(Boolean).length
+  const incomplete = known.length < 3
+  if (badCount >= 2) return { status: 'rot', incomplete }
+  if (badCount === 1) return { status: 'gelb', incomplete }
+  return { status: 'gruen', incomplete }
 }
 
 export function assessFood(food: AssessableFood): Assessment {
@@ -76,7 +90,7 @@ export function assessFood(food: AssessableFood): Assessment {
   const glValue = glycemicLoad(food)
   const glCategory = glCategoryOf(glValue)
   const omegaCategory = food.omega.category
-  const signal = signalOf(food.nova, glCategory, omegaCategory)
+  const { status: signal, incomplete: signalIncomplete } = signalOf(food.nova, glCategory, omegaCategory)
 
   const reasoning: string[] = []
 
@@ -127,11 +141,18 @@ export function assessFood(food: AssessableFood): Assessment {
     reasoning.push('Guter Proteingehalt unterstützt Sättigung und dämpft den Blutzuckeranstieg der Mahlzeit.')
   }
 
+  if (signalIncomplete && signal !== 'unvollstaendig') {
+    reasoning.push(
+      'Gesamtsignal basiert nur auf den bekannten Kriterien – nicht alle drei Werte (NOVA, GL, Omega-6/3) liegen für dieses Produkt vor.',
+    )
+  }
+
   return {
     giCategory,
     glCategory,
     glValue,
     signal,
+    signalIncomplete,
     headline: SIGNAL_HEADLINE[signal],
     reasoning,
   }

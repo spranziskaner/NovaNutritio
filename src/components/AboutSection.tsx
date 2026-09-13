@@ -1,10 +1,10 @@
 export function AboutSection() {
   return (
-    <details className="group rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-      <summary className="cursor-pointer list-none text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+    <details className="group rounded-2xl border border-stone-200 border-t-4 border-t-amber-700/70 bg-white p-5 dark:border-stone-800 dark:border-t-amber-500/60 dark:bg-stone-900">
+      <summary className="cursor-pointer list-none font-serif text-base font-semibold text-stone-800 dark:text-stone-200">
         Was steckt hinter der Einschätzung? ▾
       </summary>
-      <div className="mt-3 space-y-3 text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
+      <div className="mt-3 space-y-3 text-sm leading-relaxed text-stone-600 dark:text-stone-400">
         <p>
           Dr. Andrew Jenkinson beschreibt in seinem Weight-Set-Point-Konzept, dass der Körper ein
           individuelles „Wunschgewicht" über Hormone wie Leptin und Insulin reguliert. Stark
@@ -14,13 +14,13 @@ export function AboutSection() {
         </p>
         <p>
           Diese App kombiniert deshalb drei Kennzahlen zu einem{' '}
-          <strong className="text-neutral-800 dark:text-neutral-200">Gesamtsignal</strong>: den{' '}
-          <strong className="text-neutral-800 dark:text-neutral-200">Verarbeitungsgrad nach NOVA</strong>{' '}
+          <strong className="text-stone-800 dark:text-stone-200">Gesamtsignal</strong>: den{' '}
+          <strong className="text-stone-800 dark:text-stone-200">Verarbeitungsgrad nach NOVA</strong>{' '}
           (1 = unverarbeitet bis 4 = ultra-verarbeitet), die{' '}
-          <strong className="text-neutral-800 dark:text-neutral-200">glykämische Last (GL)</strong>{' '}
+          <strong className="text-stone-800 dark:text-stone-200">glykämische Last (GL)</strong>{' '}
           (Glykämischer Index × Kohlenhydratmenge der Portion – aussagekräftiger für die
           Insulinwirkung als der GI allein) sowie die{' '}
-          <strong className="text-neutral-800 dark:text-neutral-200">Omega-6/3-Einordnung</strong>{' '}
+          <strong className="text-stone-800 dark:text-stone-200">Omega-6/3-Einordnung</strong>{' '}
           des Lebensmittels. Rot bedeutet: NOVA 4 zusammen mit hoher GL oder ungünstigem
           Omega-Verhältnis, oder zwei der drei Kriterien fallen ungünstig aus. Gelb heißt: genau
           eines der drei Kriterien ist auffällig, Grün: alle drei sind unauffällig. Fehlt einer der

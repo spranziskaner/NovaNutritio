@@ -1,16 +1,20 @@
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import type { FoodCategory, NovaGroup, RemoteFood } from './types'
 import { Filters } from './components/Filters'
 import { FoodListItem } from './components/FoodListItem'
 import { FoodDetail } from './components/FoodDetail'
 import { AboutSection } from './components/AboutSection'
-import { BarcodeScanner } from './components/BarcodeScanner'
 import { getProductByBarcode, searchProductsByName, OpenFoodFactsError } from './lib/openfoodfacts'
+
+// Zieht die vergleichsweise große ZXing-Scan-Bibliothek erst nach, wenn der
+// Scanner tatsächlich geöffnet wird, statt sie in jedes initiale Laden der
+// App einzurechnen.
+const BarcodeScanner = lazy(() => import('./components/BarcodeScanner').then((m) => ({ default: m.BarcodeScanner })))
 
 const SEARCH_DEBOUNCE_MS = 450
 const MIN_QUERY_LENGTH = 2
 
-const canScan = typeof window !== 'undefined' && 'BarcodeDetector' in window
+const canScan = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
 
 function App() {
   const [query, setQuery] = useState('')
@@ -83,17 +87,19 @@ function App() {
   const selected = filtered.find((f) => f.id === selectedId) ?? filtered[0]
 
   return (
-    <div className="min-h-screen bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
-      <header className="border-b border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+    <div className="min-h-screen bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100">
+      <header className="border-b-2 border-amber-700/40 bg-white dark:border-amber-500/30 dark:bg-stone-900">
         <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
-          <h1 className="text-2xl font-bold tracking-tight">NovaNutritio</h1>
-          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+          <h1 className="font-display text-3xl font-bold tracking-[0.08em] text-stone-900 uppercase dark:text-stone-50">
+            NovaNutritio
+          </h1>
+          <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">
             Glykämischer Index & Last, NOVA-Verarbeitungsgrad und Omega-6/3-Einordnung – live über die{' '}
             <a
               href="https://world.openfoodfacts.org"
               target="_blank"
               rel="noreferrer"
-              className="underline hover:text-teal-600 dark:hover:text-teal-400"
+              className="underline hover:text-amber-600 dark:hover:text-amber-400"
             >
               Open-Food-Facts-Datenbank
             </a>
@@ -122,12 +128,20 @@ function App() {
             />
 
             {scannerOpen && (
-              <BarcodeScanner onDetected={handleBarcode} onClose={() => setScannerOpen(false)} />
+              <Suspense
+                fallback={
+                  <p className="rounded-xl border border-dashed border-stone-300 px-4 py-3 text-center text-sm text-stone-500 dark:border-stone-700 dark:text-stone-400">
+                    Scanner wird geladen …
+                  </p>
+                }
+              >
+                <BarcodeScanner onDetected={handleBarcode} onClose={() => setScannerOpen(false)} />
+              </Suspense>
             )}
 
             <div className="max-h-[65vh] space-y-2 overflow-y-auto pr-1 lg:max-h-[70vh]">
               {loading && (
-                <p className="rounded-xl border border-dashed border-neutral-300 px-4 py-6 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+                <p className="rounded-xl border border-dashed border-stone-300 px-4 py-6 text-center text-sm text-stone-500 dark:border-stone-700 dark:text-stone-400">
                   Suche läuft …
                 </p>
               )}
@@ -137,13 +151,13 @@ function App() {
                 </p>
               )}
               {!loading && !error && query.trim().length < MIN_QUERY_LENGTH && results.length === 0 && (
-                <p className="rounded-xl border border-dashed border-neutral-300 px-4 py-6 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+                <p className="rounded-xl border border-dashed border-stone-300 px-4 py-6 text-center text-sm text-stone-500 dark:border-stone-700 dark:text-stone-400">
                   Lebensmittel oder Marke eingeben, oder einen Barcode scannen/eingeben, um die
                   Open-Food-Facts-Datenbank zu durchsuchen.
                 </p>
               )}
               {!loading && !error && query.trim().length >= MIN_QUERY_LENGTH && filtered.length === 0 && (
-                <p className="rounded-xl border border-dashed border-neutral-300 px-4 py-6 text-center text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+                <p className="rounded-xl border border-dashed border-stone-300 px-4 py-6 text-center text-sm text-stone-500 dark:border-stone-700 dark:text-stone-400">
                   Kein Lebensmittel gefunden.
                 </p>
               )}
@@ -164,7 +178,7 @@ function App() {
         </div>
       </main>
 
-      <footer className="mx-auto max-w-5xl px-4 pb-8 pt-2 text-xs text-neutral-400 sm:px-6 dark:text-neutral-600">
+      <footer className="mx-auto max-w-5xl px-4 pb-8 pt-2 text-xs text-stone-400 sm:px-6 dark:text-stone-600">
         Inspiriert vom Weight-Set-Point-Konzept nach Dr. Andrew Jenkinson. Kein medizinischer Rat.
         Produktdaten © Open Food Facts Mitwirkende (ODbL).
       </footer>

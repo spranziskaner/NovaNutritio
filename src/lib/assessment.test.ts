@@ -39,18 +39,31 @@ describe('assessFood – Gesamtsignal', () => {
     expect(assessFood(food).signal).toBe('rot')
   })
 
-  it('ist "unvollstaendig", wenn NOVA nicht bekannt ist', () => {
-    const food = baseFood({ nova: null })
-    expect(assessFood(food).signal).toBe('unvollstaendig')
+  it('wird trotz fehlendem NOVA aus den übrigen bekannten Kriterien berechnet (grün + unvollständig markiert)', () => {
+    const food = baseFood({ nova: null, gi: 30, carbsPer100g: 10, portionG: 100, omega: omega('guenstig') })
+    const result = assessFood(food)
+    expect(result.signal).toBe('gruen')
+    expect(result.signalIncomplete).toBe(true)
   })
 
-  it('ist "unvollstaendig", wenn keine Omega-Einordnung verfügbar ist', () => {
-    const food = baseFood({ omega: omega('unbekannt') })
-    expect(assessFood(food).signal).toBe('unvollstaendig')
+  it('wird trotz fehlender Omega-Einordnung aus NOVA+GL berechnet', () => {
+    const food = baseFood({ nova: 4, gi: 90, carbsPer100g: 50, portionG: 100, omega: omega('unbekannt') })
+    const result = assessFood(food)
+    expect(result.signal).toBe('rot')
+    expect(result.signalIncomplete).toBe(true)
   })
 
-  it('ist "unvollstaendig", wenn kein GI/GL vorliegt', () => {
-    const food = baseFood({ gi: null })
-    expect(assessFood(food).signal).toBe('unvollstaendig')
+  it('wird trotz fehlendem GI/GL aus NOVA+Omega berechnet', () => {
+    const food = baseFood({ gi: null, nova: 4, omega: omega('guenstig') })
+    const result = assessFood(food)
+    expect(result.signal).toBe('gelb')
+    expect(result.signalIncomplete).toBe(true)
+  })
+
+  it('ist nur dann "unvollstaendig", wenn wirklich kein einziges Kriterium bekannt ist', () => {
+    const food = baseFood({ nova: null, gi: null, omega: omega('unbekannt') })
+    const result = assessFood(food)
+    expect(result.signal).toBe('unvollstaendig')
+    expect(result.signalIncomplete).toBe(true)
   })
 })

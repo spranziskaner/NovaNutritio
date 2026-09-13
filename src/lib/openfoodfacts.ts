@@ -4,6 +4,7 @@ import { estimateGiFromMacros } from './giEstimate'
 import { fuzzyScore } from './fuzzySearch'
 import { assessOmega } from './omegaAssessment'
 import { resolvePortionDefault } from './portionDefaults'
+import { searchLocalFoods } from './localFoodSearch'
 
 const API_BASE = 'https://world.openfoodfacts.org'
 
@@ -20,7 +21,7 @@ const FIELDS = [
   'ingredients_text',
   'nova_group',
   'serving_quantity',
-  'image_front_small_url',
+  'image_front_url',
   'nutriments',
 ].join(',')
 
@@ -42,7 +43,7 @@ interface OffProduct {
   ingredients_text?: string
   nova_group?: number
   serving_quantity?: number
-  image_front_small_url?: string
+  image_front_url?: string
   nutriments?: OffNutriments
 }
 
@@ -63,17 +64,41 @@ async function offFetch(url: string, signal?: AbortSignal): Promise<unknown> {
 }
 
 /**
- * Sucht Produkte über die Open-Food-Facts-Volltextsuche nach Produktname/Marke.
- * Da die OFF-Suche selbst keine Tippfehler toleriert, wird ein größerer
- * Kandidatenpool geladen und lokal per Fuzzy-Matching (Levenshtein-basiert)
- * neu sortiert und gefiltert – so finden auch leicht falsch geschriebene
- * oder umgestellte Suchbegriffe noch die passenden Lebensmittel.
+ * Sucht Produkte über die Open-Food-Facts-Volltextsuche nach Produktname/Marke,
+ * ergänzt um die lokale Referenztabelle (siehe `localFoodSearch.ts`). Zwei
+ * Open-Food-Facts-Eigenheiten werden dabei ausgeglichen: (1) die Suche selbst
+ * toleriert keine Tippfehler – daher wird ein größerer Kandidatenpool
+ * geladen und lokal per Fuzzy-Matching neu sortiert/gefiltert; (2) mehrwortige
+ * Anfragen ("Granny Smith Apfel") werden von OFF offenbar strikt per UND
+ * verknüpft und liefern bei zu spezifischen Suchbegriffen schnell null
+ * Treffer – deshalb wird die Anfrage bei leerem Ergebnis schrittweise um das
+ * letzte Wort gekürzt und erneut versucht.
  */
 export async function searchProductsByName(
   query: string,
   opts?: { signal?: AbortSignal; pageSize?: number },
 ): Promise<RemoteFood[]> {
   const pageSize = opts?.pageSize ?? 24
+  const localMatches = searchLocalFoods(query)
+  const offCandidates = await fetchOffCandidatesWithFallback(query, pageSize, opts?.signal)
+  const rankedOff = rankByFuzzyMatch(query, offCandidates)
+  return [...localMatches, ...rankedOff].slice(0, pageSize)
+}
+
+async function fetchOffCandidatesWithFallback(
+  query: string,
+  pageSize: number,
+  signal?: AbortSignal,
+): Promise<RemoteFood[]> {
+  const words = query.trim().split(/\s+/).filter(Boolean)
+  for (let wordCount = words.length; wordCount >= 1; wordCount--) {
+    const candidates = await fetchOffCandidates(words.slice(0, wordCount).join(' '), pageSize, signal)
+    if (candidates.length > 0 || wordCount === 1) return candidates
+  }
+  return []
+}
+
+async function fetchOffCandidates(query: string, pageSize: number, signal?: AbortSignal): Promise<RemoteFood[]> {
   const params = new URLSearchParams({
     search_terms: query,
     search_simple: '1',
@@ -83,11 +108,10 @@ export async function searchProductsByName(
     fields: FIELDS,
     lc: 'de',
   })
-  const data = (await offFetch(`${API_BASE}/cgi/search.pl?${params.toString()}`, opts?.signal)) as {
+  const data = (await offFetch(`${API_BASE}/cgi/search.pl?${params.toString()}`, signal)) as {
     products?: OffProduct[]
   }
-  const candidates = mapProducts(data.products ?? [])
-  return rankByFuzzyMatch(query, candidates).slice(0, pageSize)
+  return mapProducts(data.products ?? [])
 }
 
 function rankByFuzzyMatch(query: string, foods: RemoteFood[]): RemoteFood[] {
@@ -170,7 +194,7 @@ function mapProduct(p: OffProduct): RemoteFood | null {
     name,
     brand: p.brands?.split(',')[0]?.trim() || undefined,
     category,
-    imageUrl: p.image_front_small_url,
+    imageUrl: p.image_front_url,
     gi,
     giSource,
     portionG,

@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { BrowserMultiFormatReader } from '@zxing/browser'
+import type { IScannerControls } from '@zxing/browser'
 
 export function BarcodeScanner({
   onDetected,
@@ -11,43 +13,29 @@ export function BarcodeScanner({
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!('BarcodeDetector' in window) || !window.BarcodeDetector) {
-      setError('Barcode-Scan wird von diesem Browser nicht unterstützt. Bitte Barcode manuell eingeben.')
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError(
+        'Kamera-Zugriff wird in diesem Kontext nicht unterstützt (benötigt HTTPS oder localhost). Bitte Barcode manuell eingeben.',
+      )
       return
     }
 
-    let stream: MediaStream | null = null
-    let frameHandle = 0
     let stopped = false
-    const detector = new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] })
+    let controls: IScannerControls | undefined
+    const reader = new BrowserMultiFormatReader()
 
-    async function tick() {
-      if (stopped || !videoRef.current) return
-      try {
-        const codes = await detector.detect(videoRef.current)
-        if (codes.length > 0) {
-          onDetected(codes[0].rawValue)
-          return
-        }
-      } catch {
-        // einzelne fehlgeschlagene Frame-Erkennungen ignorieren, nächster Frame folgt
-      }
-      frameHandle = requestAnimationFrame(tick)
-    }
-
-    navigator.mediaDevices
-      .getUserMedia({ video: { facingMode: 'environment' } })
-      .then((s) => {
+    reader
+      .decodeFromConstraints({ video: { facingMode: 'environment' } }, videoRef.current ?? undefined, (result, _err, ctrl) => {
+        if (stopped || !result) return
+        ctrl.stop()
+        onDetected(result.getText())
+      })
+      .then((c) => {
         if (stopped) {
-          s.getTracks().forEach((t) => t.stop())
+          c.stop()
           return
         }
-        stream = s
-        if (videoRef.current) {
-          videoRef.current.srcObject = s
-          videoRef.current.play().catch(() => {})
-        }
-        frameHandle = requestAnimationFrame(tick)
+        controls = c
       })
       .catch(() => {
         setError('Kamera konnte nicht gestartet werden. Bitte Zugriff erlauben oder Barcode manuell eingeben.')
@@ -55,13 +43,12 @@ export function BarcodeScanner({
 
     return () => {
       stopped = true
-      cancelAnimationFrame(frameHandle)
-      stream?.getTracks().forEach((t) => t.stop())
+      controls?.stop()
     }
   }, [onDetected])
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900">
+    <div className="rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900">
       {error ? (
         <p className="text-sm text-amber-700 dark:text-amber-400">{error}</p>
       ) : (
@@ -70,7 +57,7 @@ export function BarcodeScanner({
       <button
         type="button"
         onClick={onClose}
-        className="mt-2 text-sm font-medium text-neutral-500 underline hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
+        className="mt-2 text-sm font-medium text-stone-500 underline hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
       >
         Scanner schließen
       </button>

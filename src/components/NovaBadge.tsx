@@ -9,7 +9,7 @@ const STYLES: Record<NovaGroup, string> = {
 }
 
 const UNKNOWN_STYLE =
-  'bg-neutral-100 text-neutral-600 ring-neutral-500/20 dark:bg-neutral-800 dark:text-neutral-400 dark:ring-neutral-500/30'
+  'bg-stone-100 text-stone-600 ring-stone-500/20 dark:bg-stone-800 dark:text-stone-400 dark:ring-stone-500/30'
 
 export function NovaBadge({ nova, withLabel = false }: { nova: NovaGroup | null; withLabel?: boolean }) {
   if (nova === null) {

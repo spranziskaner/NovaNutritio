@@ -6,14 +6,14 @@ const STYLES: Record<OmegaCategory, string> = {
   neutral: 'bg-amber-100 text-amber-800 ring-amber-600/20 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-400/30',
   unguenstig: 'bg-rose-100 text-rose-800 ring-rose-600/20 dark:bg-rose-500/15 dark:text-rose-300 dark:ring-rose-400/30',
   unbekannt:
-    'bg-neutral-100 text-neutral-500 ring-neutral-500/20 dark:bg-neutral-800 dark:text-neutral-400 dark:ring-neutral-500/30',
+    'bg-stone-100 text-stone-500 ring-stone-500/20 dark:bg-stone-800 dark:text-stone-400 dark:ring-stone-500/30',
 }
 
 const DOT: Record<OmegaCategory, string> = {
   guenstig: 'bg-emerald-500',
   neutral: 'bg-amber-500',
   unguenstig: 'bg-rose-500',
-  unbekannt: 'bg-neutral-400',
+  unbekannt: 'bg-stone-400',
 }
 
 const LABEL: Record<OmegaCategory, string> = {
@@ -41,7 +41,7 @@ export function OmegaBadge({ omega }: { omega: OmegaAssessment }) {
         )}
       </span>
       {omega.isWalnutSpecialCase && (
-        <span className="text-center text-[11px] leading-tight text-neutral-500 dark:text-neutral-400">
+        <span className="text-center text-[11px] leading-tight text-stone-500 dark:text-stone-400">
           Enthält auch hohen Omega-6-Anteil
         </span>
       )}
