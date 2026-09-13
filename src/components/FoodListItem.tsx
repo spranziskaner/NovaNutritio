@@ -1,4 +1,4 @@
-import type { Food } from '../types'
+import type { RemoteFood } from '../types'
 import { assessFood } from '../lib/assessment'
 import { NovaBadge } from './NovaBadge'
 import { GiPill } from './GiPill'
@@ -8,7 +8,7 @@ export function FoodListItem({
   active,
   onSelect,
 }: {
-  food: Food
+  food: RemoteFood
   active: boolean
   onSelect: () => void
 }) {
@@ -25,7 +25,12 @@ export function FoodListItem({
       }`}
     >
       <div className="flex items-center justify-between gap-3">
-        <span className="font-medium text-neutral-900 dark:text-neutral-100">{food.name}</span>
+        <span className="min-w-0">
+          <span className="block truncate font-medium text-neutral-900 dark:text-neutral-100">{food.name}</span>
+          {food.brand && (
+            <span className="block truncate text-xs text-neutral-500 dark:text-neutral-400">{food.brand}</span>
+          )}
+        </span>
         <NovaBadge nova={food.nova} />
       </div>
       <div className="mt-1.5 flex items-center gap-4 text-sm text-neutral-600 dark:text-neutral-400">

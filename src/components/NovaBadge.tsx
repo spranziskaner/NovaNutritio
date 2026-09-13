@@ -8,7 +8,21 @@ const STYLES: Record<NovaGroup, string> = {
   4: 'bg-rose-100 text-rose-800 ring-rose-600/20 dark:bg-rose-500/15 dark:text-rose-300 dark:ring-rose-400/30',
 }
 
-export function NovaBadge({ nova, withLabel = false }: { nova: NovaGroup; withLabel?: boolean }) {
+const UNKNOWN_STYLE =
+  'bg-neutral-100 text-neutral-600 ring-neutral-500/20 dark:bg-neutral-800 dark:text-neutral-400 dark:ring-neutral-500/30'
+
+export function NovaBadge({ nova, withLabel = false }: { nova: NovaGroup | null; withLabel?: boolean }) {
+  if (nova === null) {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${UNKNOWN_STYLE}`}
+        title="Open Food Facts hat für dieses Produkt keine NOVA-Einstufung hinterlegt."
+      >
+        NOVA ?
+      </span>
+    )
+  }
+
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${STYLES[nova]}`}
