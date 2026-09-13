@@ -5,7 +5,9 @@ import type { FoodSummary } from '../types'
 // `Access-Control-Allow-Origin`-Freigabe für Browser-Anfragen (siehe
 // Kommentar an `offClient.ts`).
 const SEARCH_URL = '/off-api/cgi/search.pl'
-const SEARCH_FIELDS = 'code,product_name,product_name_de,brands,image_front_small_url,nova_group'
+const SEARCH_FIELDS = 'code,product_name,product_name_de,brands,image_front_small_url,nova_group,countries_tags'
+/** Rohe Trefferzahl je Anfrage, bevor clientseitig auf Deutschland-Bezug gefiltert wird. */
+const RAW_RESULT_MULTIPLIER = 3
 
 interface SearchHit {
   code?: string
@@ -14,6 +16,7 @@ interface SearchHit {
   brands?: string
   image_front_small_url?: string
   nova_group?: number
+  countries_tags?: string[]
 }
 
 interface SearchResponse {
@@ -40,12 +43,15 @@ interface SearchResponse {
  * Liefert bewusst nur Anzeigefelder (`FoodSummary`): GI/GL/NOVA/Omega werden
  * erst berechnet, wenn ein Treffer ausgewählt wird (siehe `loadFoodDetail.ts`).
  *
- * Fest auf den deutschen Markt eingeschränkt (`tagtype_0=countries&tag_0=
- * Germany`, klassisches Facetten-Suchmuster von `/cgi/search.pl`), statt als
- * Nutzer-Filter: Open Food Facts ist eine globale Datenbank, ohne Eingrenzung
- * kommen bei generischen Suchbegriffen sehr viele Treffer aus aller Welt
- * zurück, die für den deutschsprachigen Anwendungsfall dieser App nicht
- * relevant sind.
+ * Auf den deutschen Markt eingeschränkt – aber bewusst clientseitig per
+ * `countries_tags`-Filter statt über zusätzliche Facetten-Query-Parameter
+ * (`tagtype_0`/`tag_0` o. Ä.) an `/cgi/search.pl`: dieser (nicht offiziell
+ * typisierte) Legacy-Endpunkt reagierte auf die Kombination aus freiem
+ * `search_terms` und Facetten-Parametern im Test mit HTTP 503. Stattdessen
+ * wird ein größerer Rohpool angefragt und die Deutschland-Eingrenzung danach
+ * im Browser angewendet – Open Food Facts ist eine globale Datenbank, ohne
+ * Eingrenzung kommen bei generischen Suchbegriffen sehr viele, für den
+ * deutschsprachigen Anwendungsfall irrelevante Treffer zurück.
  */
 export async function searchFoods(query: string, pageSize = 30): Promise<FoodSummary[]> {
   const params = new URLSearchParams({
@@ -53,12 +59,8 @@ export async function searchFoods(query: string, pageSize = 30): Promise<FoodSum
     search_simple: '1',
     action: 'process',
     json: '1',
-    page_size: String(pageSize),
+    page_size: String(pageSize * RAW_RESULT_MULTIPLIER),
     fields: SEARCH_FIELDS,
-    lc: 'de',
-    tagtype_0: 'countries',
-    tag_contains_0: 'contains',
-    tag_0: 'Germany',
   })
 
   const response = await fetch(`${SEARCH_URL}?${params}`)
@@ -71,7 +73,13 @@ export async function searchFoods(query: string, pageSize = 30): Promise<FoodSum
 
   return (data.products ?? [])
     .filter((hit): hit is SearchHit & { code: string } => Boolean(hit.code))
+    .filter(isGermanProduct)
+    .slice(0, pageSize)
     .map(toFoodSummary)
+}
+
+function isGermanProduct(hit: SearchHit): boolean {
+  return (hit.countries_tags ?? []).some((tag) => tag.toLowerCase().includes('germany'))
 }
 
 function toFoodSummary(hit: SearchHit & { code: string }): FoodSummary {

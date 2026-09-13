@@ -27,10 +27,12 @@ Es gibt keine lokale/extrahierte Datenbasis mehr.
   Tag-/Nährwert-Filter. Die klassische Route durchsucht Produktname/Marke/Schlagwörter
   bereits server-seitig – ein eigenes clientseitiges Fuzzy-Matching ist damit nicht
   nötig, auch wenn sie (anders als search-a-licious) keine Tippfehlertoleranz bietet.
-  Liefert bewusst nur Anzeigefelder (Name, Marke, Bild, NOVA-Gruppe) und ist fest auf
-  Produkte mit Deutschland-Bezug eingeschränkt (`tagtype_0=countries&tag_0=Germany`),
-  da eine unbegrenzte Suche in der globalen OFF-Datenbank bei generischen Begriffen sehr
-  viele, für den deutschsprachigen Anwendungsfall irrelevante Treffer liefert.
+  Liefert bewusst nur Anzeigefelder (Name, Marke, Bild, NOVA-Gruppe) und ist auf Produkte
+  mit Deutschland-Bezug eingeschränkt, da eine unbegrenzte Suche in der globalen
+  OFF-Datenbank bei generischen Begriffen sehr viele irrelevante Treffer liefert. Die
+  Filterung läuft bewusst clientseitig über das zurückgelieferte `countries_tags`-Feld
+  (größerer Rohpool wird angefragt, dann im Browser gefiltert) statt über zusätzliche
+  Facetten-Query-Parameter am Legacy-Endpunkt – letzteres führte im Test zu HTTP 503.
 
 Open Food Facts liefert keinen glykämischen Index. Für den GI wird daher zunächst per
 Namensabgleich in einer kleinen, handkuratierten Referenztabelle
