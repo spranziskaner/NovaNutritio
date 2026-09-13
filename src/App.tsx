@@ -1,53 +1,91 @@
 import { useEffect, useRef, useState } from 'react'
-import type { RemoteFood } from './types'
+import type { FoodSummary, RemoteFood } from './types'
 import { Filters } from './components/Filters'
 import { FoodListItem } from './components/FoodListItem'
 import { FoodDetail } from './components/FoodDetail'
 import { AboutSection } from './components/AboutSection'
 import { searchFoods } from './lib/search'
-import { listLocalFoods } from './lib/localFoodSearch'
+import { loadFoodDetail } from './lib/loadFoodDetail'
 
 const SEARCH_DEBOUNCE_MS = 300
 const MIN_QUERY_LENGTH = 2
 
 function App() {
   const [query, setQuery] = useState('')
-  // null = keine Suchanfrage aktiv, der lokale Grundbestand wird angezeigt.
-  const [searchResults, setSearchResults] = useState<RemoteFood[] | null>(null)
+  const [results, setResults] = useState<FoodSummary[]>([])
+  const [searchError, setSearchError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  // Vollständige Bewertung (GI/GL/NOVA/Omega) wird erst nachgeladen, wenn ein
+  // Treffer ausgewählt wird – die Suche selbst liefert nur Anzeigefelder.
+  const [detail, setDetail] = useState<RemoteFood | null>(null)
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [detailLoading, setDetailLoading] = useState(false)
   // Steuert auf schmalen Bildschirmen, ob Liste oder Detailansicht sichtbar
   // ist (auf breiten Bildschirmen stehen beide immer nebeneinander).
   const [mobileView, setMobileView] = useState<'liste' | 'detail'>('liste')
-  // Verwirft die Antwort einer überholten Suchanfrage, falls eine neuere
-  // schneller zurückkommt (z. B. weil der Offline-Datensatz erst geladen
-  // werden musste).
-  const requestIdRef = useRef(0)
+  // Verwirft die Antwort einer überholten Anfrage, falls eine neuere
+  // schneller zurückkommt.
+  const searchRequestIdRef = useRef(0)
+  const detailRequestIdRef = useRef(0)
 
   useEffect(() => {
     const trimmed = query.trim()
     if (trimmed.length < MIN_QUERY_LENGTH) {
-      requestIdRef.current++
-      setLoading(false)
+      searchRequestIdRef.current++
+      setResults([])
+      setSearchLoading(false)
       return
     }
 
     const timer = setTimeout(() => {
-      const requestId = ++requestIdRef.current
-      setLoading(true)
+      const requestId = ++searchRequestIdRef.current
+      setSearchLoading(true)
+      setSearchError(null)
       searchFoods(trimmed)
         .then((foods) => {
-          if (requestIdRef.current !== requestId) return
-          setSearchResults(foods)
-          setSelectedId((current) => current ?? foods[0]?.id ?? null)
+          if (searchRequestIdRef.current !== requestId) return
+          setResults(foods)
+          setSelectedId((current) => (current && foods.some((f) => f.id === current) ? current : (foods[0]?.id ?? null)))
+        })
+        .catch((err: unknown) => {
+          if (searchRequestIdRef.current !== requestId) return
+          console.error('Suche fehlgeschlagen:', err)
+          setResults([])
+          setSearchError(err instanceof Error ? err.message : 'Suche fehlgeschlagen.')
         })
         .finally(() => {
-          if (requestIdRef.current === requestId) setLoading(false)
+          if (searchRequestIdRef.current === requestId) setSearchLoading(false)
         })
     }, SEARCH_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
   }, [query])
+
+  useEffect(() => {
+    if (!selectedId) {
+      detailRequestIdRef.current++
+      setDetail(null)
+      setDetailLoading(false)
+      return
+    }
+
+    const requestId = ++detailRequestIdRef.current
+    setDetail(null)
+    setDetailLoading(true)
+    loadFoodDetail(selectedId)
+      .then((food) => {
+        if (detailRequestIdRef.current !== requestId) return
+        setDetail(food)
+      })
+      .catch((err: unknown) => {
+        if (detailRequestIdRef.current !== requestId) return
+        console.error('Produktdetails laden fehlgeschlagen:', err)
+        setDetail(null)
+      })
+      .finally(() => {
+        if (detailRequestIdRef.current === requestId) setDetailLoading(false)
+      })
+  }, [selectedId])
 
   function handleQueryChange(value: string) {
     setQuery(value)
@@ -60,9 +98,7 @@ function App() {
   }
 
   const trimmedQuery = query.trim()
-  const filtered = trimmedQuery.length < MIN_QUERY_LENGTH ? listLocalFoods() : (searchResults ?? [])
-
-  const selected = filtered.find((f) => f.id === selectedId) ?? filtered[0]
+  const queryTooShort = trimmedQuery.length < MIN_QUERY_LENGTH
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100">
@@ -72,16 +108,15 @@ function App() {
             Nova Nutritio
           </h1>
           <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">
-            Glykämischer Index & Last, NOVA-Verarbeitungsgrad und Omega-6/3-Einordnung – vollständig lokal,
-            ohne Live-Abfrage: aus einer handkuratierten Referenztabelle sowie einem lokalen Offline-Auszug
-            der{' '}
+            Glykämischer Index & Last, NOVA-Verarbeitungsgrad und Omega-6/3-Einordnung als
+            Weight-Set-Point-Signal – Suche und Produktdaten kommen live über die offizielle{' '}
             <a
-              href="https://world.openfoodfacts.org"
+              href="https://github.com/openfoodfacts/openfoodfacts-js"
               target="_blank"
               rel="noreferrer"
               className="underline hover:text-amber-600 dark:hover:text-amber-400"
             >
-              Open-Food-Facts-Datenbank
+              Open-Food-Facts-SDK
             </a>
             .
           </p>
@@ -98,40 +133,53 @@ function App() {
             <Filters query={query} onQueryChange={handleQueryChange} />
 
             <div className="space-y-2">
-              {loading && (
+              {queryTooShort && (
+                <p className="rounded-xl border border-dashed border-stone-300 px-4 py-6 text-center text-sm text-stone-500 dark:border-stone-700 dark:text-stone-400">
+                  Mindestens {MIN_QUERY_LENGTH} Zeichen eingeben, um Open Food Facts zu durchsuchen.
+                </p>
+              )}
+              {!queryTooShort && searchLoading && (
                 <p className="rounded-xl border border-dashed border-stone-300 px-4 py-6 text-center text-sm text-stone-500 dark:border-stone-700 dark:text-stone-400">
                   Suche läuft …
                 </p>
               )}
-              {!loading && filtered.length === 0 && (
+              {!queryTooShort && !searchLoading && searchError && (
+                <p className="rounded-xl border border-dashed border-rose-300 px-4 py-6 text-center text-sm text-rose-600 dark:border-rose-800 dark:text-rose-400">
+                  Suche fehlgeschlagen: {searchError}
+                </p>
+              )}
+              {!queryTooShort && !searchLoading && !searchError && results.length === 0 && (
                 <p className="rounded-xl border border-dashed border-stone-300 px-4 py-6 text-center text-sm text-stone-500 dark:border-stone-700 dark:text-stone-400">
                   Kein Lebensmittel gefunden.
                 </p>
               )}
-              {!loading &&
-                filtered.map((f) => (
-                  <FoodListItem
-                    key={f.id}
-                    food={f}
-                    active={f.id === selected?.id}
-                    onSelect={() => handleSelect(f.id)}
-                  />
+              {!queryTooShort &&
+                !searchLoading &&
+                !searchError &&
+                results.map((f) => (
+                  <FoodListItem key={f.id} food={f} active={f.id === selectedId} onSelect={() => handleSelect(f.id)} />
                 ))}
             </div>
           </div>
 
           <div className={mobileView === 'detail' ? 'block' : 'hidden lg:block'}>
-            {selected && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setMobileView('liste')}
-                  className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-stone-600 hover:text-stone-900 lg:hidden dark:text-stone-400 dark:hover:text-stone-100"
-                >
-                  ← Zurück zur Liste
-                </button>
-                <FoodDetail food={selected} />
-              </>
+            <button
+              type="button"
+              onClick={() => setMobileView('liste')}
+              className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-stone-600 hover:text-stone-900 lg:hidden dark:text-stone-400 dark:hover:text-stone-100"
+            >
+              ← Zurück zur Liste
+            </button>
+            {detailLoading && (
+              <p className="rounded-xl border border-dashed border-stone-300 px-4 py-6 text-center text-sm text-stone-500 dark:border-stone-700 dark:text-stone-400">
+                Produktdetails werden geladen …
+              </p>
+            )}
+            {!detailLoading && detail && <FoodDetail food={detail} />}
+            {!detailLoading && !detail && selectedId && (
+              <p className="rounded-xl border border-dashed border-stone-300 px-4 py-6 text-center text-sm text-stone-500 dark:border-stone-700 dark:text-stone-400">
+                Produktdetails konnten nicht geladen werden.
+              </p>
             )}
           </div>
         </div>

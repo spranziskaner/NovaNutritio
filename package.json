@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@openfoodfacts/openfoodfacts-nodejs": "^2.0.0-alpha.35",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

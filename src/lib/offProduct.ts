@@ -10,10 +10,22 @@ interface OffNutriments {
   fiber_100g?: number
   proteins_100g?: number
   fat_100g?: number
+  /** Gemessene Omega-3-Fettsäuren je 100g – bei den meisten Produkten nicht gepflegt. */
+  'omega-3-fat_100g'?: number
+  /** Gemessene Omega-6-Fettsäuren je 100g – bei den meisten Produkten nicht gepflegt. */
+  'omega-6-fat_100g'?: number
 }
 
-/** Rohes OFF-Produktformat, wie es im Offline-Subset (`public/off-subset.json`, siehe `scripts/extract-off-subset.mjs`) vorliegt. */
-export interface OffProduct {
+/**
+ * Produktformat, wie es von der Open-Food-Facts-API v3 für die von uns
+ * angefragten `fields` zurückkommt (siehe `loadFoodDetail.ts`). Bewusst als
+ * einfaches, eigenes Interface modelliert statt die generierten SDK-Typen
+ * direkt zu verwenden: die SDK (Stand 2.0.0-alpha) bildet das Rückgabeformat
+ * als tief verschachtelten bedingten Typ ab, der von den angefragten Feldern
+ * abhängt – für unsere feste Feldauswahl ist ein flaches Interface robuster
+ * und entkoppelt uns von internen Typänderungen der (noch instabilen) SDK.
+ */
+export interface OffProductV3 {
   code: string
   product_name?: string
   product_name_de?: string
@@ -28,11 +40,11 @@ export interface OffProduct {
 }
 
 /**
- * Wandelt ein rohes OFF-Produkt aus dem lokalen Offline-Subset
- * (`localOffDump.ts`) in ein `RemoteFood` um: GI-Referenzabgleich bzw.
+ * Wandelt ein von der Open-Food-Facts-API v3 geladenes Produkt
+ * (`loadFoodDetail.ts`) in ein `RemoteFood` um: GI-Referenzabgleich bzw.
  * Formel-Schätzung, Omega-6/3-Einordnung und Kategorie-Zuordnung.
  */
-export function mapOffProduct(p: OffProduct): RemoteFood | null {
+export function mapOffProduct(p: OffProductV3): RemoteFood | null {
   const name = (p.product_name_de || p.product_name)?.trim()
   const carbsPer100g = p.nutriments?.carbohydrates_100g
   if (!name || !p.code || carbsPer100g === undefined) return null
@@ -51,6 +63,8 @@ export function mapOffProduct(p: OffProduct): RemoteFood | null {
     categoriesTags: p.categories_tags ?? [],
     labelsTags: p.labels_tags ?? [],
     ingredientsText: p.ingredients_text,
+    omega3Per100g: p.nutriments?.['omega-3-fat_100g'],
+    omega6Per100g: p.nutriments?.['omega-6-fat_100g'],
   })
 
   let gi: number | null
@@ -90,7 +104,7 @@ export function mapOffProduct(p: OffProduct): RemoteFood | null {
     omega,
     novaNote: nova
       ? `NOVA-Gruppe ${nova} laut Open Food Facts (automatisch aus der Zutatenliste ermittelt).`
-      : 'Für dieses Produkt liegt keine NOVA-Einstufung vor.',
+      : 'Open Food Facts liefert für dieses Produkt keine NOVA-Einstufung.',
   }
 }
 
