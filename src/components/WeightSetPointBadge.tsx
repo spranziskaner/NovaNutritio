@@ -1,4 +1,5 @@
 import { STATUS_DOT, type WeightSetPointStatus } from '../lib/assessment'
+import { InfoTooltip } from './InfoTooltip'
 
 const STYLES: Record<WeightSetPointStatus, string> = {
   gruen:
@@ -20,22 +21,22 @@ export function WeightSetPointBadge({
   headline: string
   incomplete?: boolean
 }) {
+  const incompleteNote =
+    incomplete && signal !== 'unvollstaendig'
+      ? ' Basiert nur auf den bekannten Kriterien – nicht alle drei Werte (GI/GL, NOVA, Omega-6/3) liegen vor.'
+      : ''
+
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 ring-inset ${STYLES[signal]}`}
-      title="Weight-Set-Point-Signal auf Basis von glykämischem Index/glykämischer Last (Hauptkriterien), modifiziert durch Ballaststoff-Verhältnis, NOVA-Verarbeitungsgrad und Omega-6/3-Einordnung."
     >
       <span className={`h-2 w-2 rounded-full ${DOT[signal]}`} />
       {headline}
-      {incomplete && signal !== 'unvollstaendig' && (
-        <span
-          aria-hidden="true"
-          className="opacity-70"
-          title="Basiert nur auf den bekannten Kriterien – nicht alle drei Werte (GI/GL, NOVA, Omega-6/3) liegen vor."
-        >
-          *
-        </span>
-      )}
+      {incomplete && signal !== 'unvollstaendig' && <span aria-hidden="true">*</span>}
+      <InfoTooltip
+        text={`Weight-Set-Point-Signal auf Basis von glykämischem Index/glykämischer Last (Hauptkriterien), modifiziert durch Ballaststoff-Verhältnis, NOVA-Verarbeitungsgrad und Omega-6/3-Einordnung.${incompleteNote}`}
+        label="Mehr zum Weight-Set-Point-Signal"
+      />
     </span>
   )
 }

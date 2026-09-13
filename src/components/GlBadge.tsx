@@ -1,4 +1,5 @@
 import type { GlCategory } from '../lib/assessment'
+import { InfoTooltip } from './InfoTooltip'
 
 const STYLES: Record<GlCategory, string> = {
   niedrig:
@@ -30,13 +31,10 @@ export function GlBadge({ category, value }: { category: GlCategory; value: numb
     <div className="flex flex-col items-center gap-1">
       <span
         className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${STYLES[category]}`}
-        title={INFO_TEXT}
       >
         <span className={`h-2 w-2 rounded-full ${DOT[category]}`} />
         GL {LABEL[category]}
-        <span aria-hidden="true" className="opacity-60">
-          ⓘ
-        </span>
+        <InfoTooltip text={INFO_TEXT} label="Mehr zur glykämischen Last" />
       </span>
       {value !== null && <span className="text-xs text-stone-500 dark:text-stone-400">{value.toFixed(1)}</span>}
     </div>

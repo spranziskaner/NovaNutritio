@@ -59,7 +59,7 @@ export function FoodDetail({ food }: { food: RemoteFood }) {
           <div className="text-xs text-stone-500 dark:text-stone-400">Omega-6/3-Verhältnis</div>
         </div>
         <div className="flex items-center justify-center gap-2 rounded-lg bg-stone-50 px-3 py-2 dark:bg-stone-800/60">
-          <NovaBadge nova={food.nova} estimated={food.novaEstimated} />
+          <NovaBadge nova={food.nova} />
         </div>
       </div>
 

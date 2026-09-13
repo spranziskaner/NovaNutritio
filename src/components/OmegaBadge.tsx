@@ -1,4 +1,5 @@
 import type { OmegaAssessment, OmegaCategory } from '../types'
+import { InfoTooltip } from './InfoTooltip'
 
 const STYLES: Record<OmegaCategory, string> = {
   guenstig:
@@ -29,22 +30,23 @@ const INFO_PREFIX =
   'Omega-6/3-Verhältnis: Omega-6 fördert in hoher Dosis eher Entzündungsprozesse, Omega-3 wirkt dem entgegen. Günstig ≈ 1:1–4:1, ungünstig deutlich darüber.'
 
 export function OmegaBadge({ omega }: { omega: OmegaAssessment }) {
+  const tooltipText = omega.provenanceUnknown
+    ? `${INFO_PREFIX} ${omega.reasonLabel} ${PROVENANCE_HINT}`
+    : `${INFO_PREFIX} ${omega.reasonLabel}`
+
   return (
     <div className="flex flex-col items-center gap-1">
       <span
         className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${STYLES[omega.category]}`}
-        title={`${INFO_PREFIX} ${omega.reasonLabel}`}
       >
         <span className={`h-2 w-2 rounded-full ${DOT[omega.category]}`} />
         Omega {LABEL[omega.category]}
         {omega.provenanceUnknown && (
-          <span aria-hidden="true" className="opacity-70" title={PROVENANCE_HINT}>
+          <span aria-hidden="true" className="opacity-70">
             ❓
           </span>
         )}
-        <span aria-hidden="true" className="opacity-60">
-          ⓘ
-        </span>
+        <InfoTooltip text={tooltipText} label="Mehr zum Omega-6/3-Verhältnis" />
       </span>
       {omega.ratio !== null && (
         <span className="text-xs text-stone-500 dark:text-stone-400">≈ {omega.ratio.toFixed(1)}:1</span>

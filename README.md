@@ -44,10 +44,8 @@ Omega-6/3 wird berechnet, wenn Open Food Facts gemessene Omega-3/6-Fettsäurewer
 Produkt führt (`omega-3-fat_100g`/`omega-6-fat_100g`, real aber selten gepflegt); sonst
 über Kategorie-/Label-/Zutatenlisten-Abgleich eingeordnet (`src/lib/omegaAssessment.ts`).
 
-Liefert Open Food Facts keine NOVA-Gruppe, versucht die App hilfsweise eine grobe
-Schätzung aus Zutatenliste und GI/GL-Muster (`src/lib/novaEstimate.ts`) – deutlich
-unsicherer als die echte NOVA-Klassifikation und in der UI als Schätzung gekennzeichnet
-(`RemoteFood.novaEstimated`).
+Die NOVA-Gruppe kommt ausschließlich von Open Food Facts, es wird nichts geschätzt: liegt
+keine vor, zeigt die App „NOVA unbestimmt" an.
 
 ### CORS / Dev-Proxy
 

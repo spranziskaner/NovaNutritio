@@ -93,6 +93,4 @@ export interface RemoteFood extends AssessableFood {
   fatPer100g?: number
   /** Kurzbegründung für die NOVA-Einstufung bzw. Hinweis, dass sie fehlt. */
   novaNote: string
-  /** true = `nova` ist eine grobe App-Schätzung (Open Food Facts liefert keine eigene NOVA-Einstufung). */
-  novaEstimated?: boolean
 }

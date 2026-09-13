@@ -1,9 +1,7 @@
 import type { FoodCategory, GiSource, NovaGroup, RemoteFood } from '../types'
-import { giCategoryOf, glCategoryOf, glycemicLoad } from './assessment'
 import { lookupGi } from './giReference'
 import { estimateGiFromMacros } from './giEstimate'
 import { assessOmega } from './omegaAssessment'
-import { estimateNovaGroup } from './novaEstimate'
 import { resolvePortionDefault } from './portionDefaults'
 
 interface OffNutriments {
@@ -51,7 +49,7 @@ export function mapOffProduct(p: OffProductV3): RemoteFood | null {
   const carbsPer100g = p.nutriments?.carbohydrates_100g
   if (!name || !p.code || carbsPer100g === undefined) return null
 
-  const novaFromOff: NovaGroup | null =
+  const nova: NovaGroup | null =
     p.nova_group === 1 || p.nova_group === 2 || p.nova_group === 3 || p.nova_group === 4 ? p.nova_group : null
   const category = guessCategory(p.categories_tags ?? [])
   const giMatch = lookupGi(name)
@@ -87,17 +85,6 @@ export function mapOffProduct(p: OffProductV3): RemoteFood | null {
     giSource = estimated === null ? 'unbekannt' : 'berechnet'
   }
 
-  // NOVA nur schätzen, wenn Open Food Facts selbst keine liefert – siehe
-  // `novaEstimate.ts`. Rein informativ als Fallback, deutlich unsicherer als
-  // die echte NOVA-Klassifikation.
-  const novaEstimated = novaFromOff === null
-  const nova = novaFromOff ?? estimateNovaGroup({
-    ingredientsText: p.ingredients_text,
-    giCategory: giCategoryOf(gi),
-    glCategory: glCategoryOf(glycemicLoad({ gi, carbsPer100g })),
-    fiberPer100g: p.nutriments?.fiber_100g,
-  })
-
   return {
     id: p.code,
     barcode: p.code,
@@ -114,13 +101,10 @@ export function mapOffProduct(p: OffProductV3): RemoteFood | null {
     proteinPer100g: p.nutriments?.proteins_100g,
     fatPer100g: p.nutriments?.fat_100g,
     nova,
-    novaEstimated: novaEstimated && nova !== null,
     omega,
-    novaNote: novaFromOff
-      ? `NOVA-Gruppe ${novaFromOff} laut Open Food Facts (automatisch aus der Zutatenliste ermittelt).`
-      : nova !== null
-        ? `NOVA-Gruppe ${nova} grob geschätzt (Zutatenliste-/GI-GL-Muster) – Open Food Facts liefert für dieses Produkt keine eigene NOVA-Einstufung.`
-        : 'Für dieses Produkt liegt keine NOVA-Einstufung vor (auch keine verlässliche Schätzung möglich).',
+    novaNote: nova
+      ? `NOVA-Gruppe ${nova} laut Open Food Facts (automatisch aus der Zutatenliste ermittelt).`
+      : 'Open Food Facts liefert für dieses Produkt keine NOVA-Einstufung.',
   }
 }
 

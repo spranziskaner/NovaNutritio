@@ -41,7 +41,7 @@ export function FoodListItem({
             <span className="block truncate text-xs text-stone-500 dark:text-stone-400">{food.brand}</span>
           )}
         </span>
-        <NovaBadge nova={food.nova} />
+        <NovaBadge nova={food.nova} showInfo={false} />
       </div>
     </button>
   )

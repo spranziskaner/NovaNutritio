@@ -1,5 +1,6 @@
 import type { GiCategory } from '../lib/assessment'
 import type { GiSource } from '../types'
+import { InfoTooltip } from './InfoTooltip'
 
 const STYLES: Record<GiCategory, string> = {
   niedrig:
@@ -43,14 +44,11 @@ export function GiPill({ gi, category, source }: { gi: number | null; category: 
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${STYLES[category]}`}
-      title={`${INFO_PREFIX} ${SOURCE_TEXT[source]}`}
     >
       <span className={`h-2 w-2 rounded-full ${DOT[category]}`} />
       GI {gi === null ? 'n/a' : gi}
       {gi !== null && ` (${LABEL[category]})`}
-      <span aria-hidden="true" className="opacity-60">
-        ⓘ
-      </span>
+      <InfoTooltip text={`${INFO_PREFIX} ${SOURCE_TEXT[source]}`} label="Mehr zum glykämischen Index" />
     </span>
   )
 }

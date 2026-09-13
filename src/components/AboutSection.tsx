@@ -52,10 +52,9 @@ export function AboutSection() {
           Hinweis: Alle Werte sind Richtwerte aus öffentlichen Tabellen und Kategorie-Zuordnungen
           und schwanken je nach Sorte, Reifegrad, Zubereitung und Herkunft. Liegt für ein Produkt
           kein gemessener GI-Wert vor, schätzt die App ihn per Formel aus Zucker-, Ballaststoff-,
-          Fett- und Proteingehalt – das ist eine grobe Näherung, kein Laborwert. Liegt keine
-          NOVA-Einstufung von Open Food Facts vor, versucht die App hilfsweise eine grobe Schätzung
-          aus Zutatenliste und GI/GL-Muster – deutlich unsicherer als die echte NOVA-Klassifikation
-          und im Zweifel als „geschätzt" gekennzeichnet. Die Einschätzung ist ein didaktisches
+          Fett- und Proteingehalt – das ist eine grobe Näherung, kein Laborwert. Die NOVA-Gruppe
+          kommt ausschließlich von Open Food Facts; liegt dort keine vor, zeigt die App „NOVA
+          unbestimmt" an, statt selbst zu schätzen. Die Einschätzung ist ein didaktisches
           Hilfsmittel, keine medizinische Bewertung und ersetzt keine individuelle
           Ernährungsberatung.
         </p>
