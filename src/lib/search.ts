@@ -8,6 +8,14 @@ const SEARCH_URL = '/off-api/cgi/search.pl'
 const SEARCH_FIELDS = 'code,product_name,product_name_de,brands,image_front_small_url,nova_group,countries_tags'
 /** Rohe Trefferzahl je Anfrage, bevor clientseitig auf Deutschland-Bezug gefiltert wird. */
 const RAW_RESULT_MULTIPLIER = 3
+/** HTTP-Status, die auf eine vorübergehende Überlastung hindeuten – ein Retry lohnt sich. */
+const TRANSIENT_STATUS_CODES = new Set([502, 503, 504])
+const MAX_ATTEMPTS = 3
+const RETRY_DELAY_MS = 400
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 interface SearchHit {
   code?: string
@@ -52,6 +60,12 @@ interface SearchResponse {
  * im Browser angewendet – Open Food Facts ist eine globale Datenbank, ohne
  * Eingrenzung kommen bei generischen Suchbegriffen sehr viele, für den
  * deutschsprachigen Anwendungsfall irrelevante Treffer zurück.
+ *
+ * Der Legacy-Endpunkt antwortet gelegentlich (unabhängig von der konkreten
+ * Anfrage) mit HTTP 502/503/504, wenn er kurzzeitig überlastet ist – das ist
+ * ein bekanntes Verhalten dieser älteren Infrastruktur, kein Fehler in
+ * unserer Anfrage. Solche Antworten werden daher automatisch mit kurzer
+ * Wartezeit wiederholt, statt den Fehler sofort weiterzureichen.
  */
 export async function searchFoods(query: string, pageSize = 30): Promise<FoodSummary[]> {
   const params = new URLSearchParams({
@@ -63,19 +77,32 @@ export async function searchFoods(query: string, pageSize = 30): Promise<FoodSum
     fields: SEARCH_FIELDS,
   })
 
-  const response = await fetch(`${SEARCH_URL}?${params}`)
-  if (!response.ok) {
-    console.error('OFF-Suche: Fehlerstatus', response.status, response.statusText)
-    throw new Error(`Open-Food-Facts-Suche fehlgeschlagen (Status ${response.status}).`)
-  }
-
-  const data = (await response.json()) as SearchResponse
+  const data = await fetchWithRetry(`${SEARCH_URL}?${params}`)
 
   return (data.products ?? [])
     .filter((hit): hit is SearchHit & { code: string } => Boolean(hit.code))
     .filter(isGermanProduct)
     .slice(0, pageSize)
     .map(toFoodSummary)
+}
+
+async function fetchWithRetry(url: string): Promise<SearchResponse> {
+  let lastStatus: number | undefined
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const response = await fetch(url)
+    if (response.ok) {
+      return (await response.json()) as SearchResponse
+    }
+
+    lastStatus = response.status
+    console.error(`OFF-Suche: Fehlerstatus (Versuch ${attempt}/${MAX_ATTEMPTS})`, response.status, response.statusText)
+
+    const isTransient = TRANSIENT_STATUS_CODES.has(response.status)
+    if (!isTransient || attempt === MAX_ATTEMPTS) break
+    await delay(RETRY_DELAY_MS * attempt)
+  }
+
+  throw new Error(`Open-Food-Facts-Suche fehlgeschlagen (Status ${lastStatus}).`)
 }
 
 function isGermanProduct(hit: SearchHit): boolean {
