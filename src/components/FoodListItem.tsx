@@ -20,20 +20,20 @@ export function FoodListItem({
       onClick={onSelect}
       className={`w-full rounded-xl border px-4 py-3 text-left transition-colors ${
         active
-          ? 'border-teal-500 bg-teal-50 dark:border-teal-400 dark:bg-teal-500/10'
-          : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700 dark:hover:bg-neutral-800/60'
+          ? 'border-amber-500 bg-amber-50 dark:border-amber-400 dark:bg-amber-500/10'
+          : 'border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50 dark:border-stone-800 dark:bg-stone-900 dark:hover:border-stone-700 dark:hover:bg-stone-800/60'
       }`}
     >
       <div className="flex items-center justify-between gap-3">
         <span className="min-w-0">
-          <span className="block truncate font-medium text-neutral-900 dark:text-neutral-100">{food.name}</span>
+          <span className="block truncate font-medium text-stone-900 dark:text-stone-100">{food.name}</span>
           {food.brand && (
-            <span className="block truncate text-xs text-neutral-500 dark:text-neutral-400">{food.brand}</span>
+            <span className="block truncate text-xs text-stone-500 dark:text-stone-400">{food.brand}</span>
           )}
         </span>
         <NovaBadge nova={food.nova} />
       </div>
-      <div className="mt-1.5 flex items-center gap-4 text-sm text-neutral-600 dark:text-neutral-400">
+      <div className="mt-1.5 flex items-center gap-4 text-sm text-stone-600 dark:text-stone-400">
         <span>
           GI <GiPill gi={food.gi} category={assessment.giCategory} />
         </span>

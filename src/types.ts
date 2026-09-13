@@ -34,7 +34,20 @@ export interface Food {
   tags?: string[]
 }
 
-/** Minimale Datenbasis, die die GI/NOVA/Set-Point-Bewertung benötigt. */
+/** Dreistufige Einordnung des Omega-6/3-Verhältnisses (OFF liefert keine Omega-Rohdaten). */
+export type OmegaCategory = 'guenstig' | 'neutral' | 'unguenstig' | 'unbekannt'
+
+export interface OmegaAssessment {
+  category: OmegaCategory
+  /** Sonderfall Walnüsse: reich an Omega-3 UND Omega-6, nicht pauschal bewertet. */
+  isWalnutSpecialCase: boolean
+  /** true bei Fleisch/Fisch/Eiern ohne Weide-/Bio-/Wildfang-Label – Einordnung dann unsicher. */
+  provenanceUnknown: boolean
+  /** Kurzbegründung für die Einordnung (Kategorie- oder Zutatentreffer). */
+  reasonLabel: string
+}
+
+/** Minimale Datenbasis, die die GI/NOVA/Omega-Bewertung benötigt. */
 export interface AssessableFood {
   gi: number | null
   portionG: number
@@ -43,10 +56,11 @@ export interface AssessableFood {
   proteinPer100g?: number
   /** null = von Open Food Facts nicht klassifiziert. */
   nova: NovaGroup | null
+  omega: OmegaAssessment
 }
 
 /** Woher der angezeigte GI-Wert stammt. */
-export type GiSource = 'referenz' | 'unbekannt'
+export type GiSource = 'referenz' | 'berechnet' | 'unbekannt'
 
 /** Zur Laufzeit über die Open-Food-Facts-API geladenes Lebensmittel. */
 export interface RemoteFood extends AssessableFood {

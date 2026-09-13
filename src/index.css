@@ -1,5 +1,12 @@
 @import 'tailwindcss';
 
+@theme {
+  /* Klassisch-antike Serifenschrift für Fließtext-Überschriften (font-serif). */
+  --font-serif: 'EB Garamond', 'Iowan Old Style', Georgia, serif;
+  /* Inschriften-Kapitälchen-Look für den App-Titel (font-display). */
+  --font-display: 'Cinzel', 'Trajan Pro', Georgia, serif;
+}
+
 html {
   color-scheme: light dark;
 }

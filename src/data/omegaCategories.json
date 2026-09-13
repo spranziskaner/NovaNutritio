@@ -1,0 +1,83 @@
+{
+  "favorableProvenanceLabelKeywords": ["grass-fed", "pasture-raised", "organic", "free-range", "wild-fish", "wild-caught"],
+  "entries": [
+    {
+      "id": "weidefleisch-rind-lamm",
+      "categoryTagKeywords": ["beef", "lamb", "veal", "rind", "lamm", "kalb"],
+      "labelDependent": true,
+      "withLabel": "guenstig",
+      "withoutLabel": "unguenstig"
+    },
+    {
+      "id": "gefluegel-schwein-standard",
+      "categoryTagKeywords": ["poultry", "chicken", "pork", "geflügel", "hähnchen", "huhn", "pute", "schwein"],
+      "labelDependent": true,
+      "withLabel": "guenstig",
+      "withoutLabel": "unguenstig"
+    },
+    {
+      "id": "wildfisch-konserve",
+      "categoryTagKeywords": [
+        "wild-fish", "sardine", "mackerel", "salmon", "herring", "anchov", "canned-fish", "tuna",
+        "lachs", "makrele", "hering", "thunfisch", "matjes"
+      ],
+      "category": "guenstig"
+    },
+    {
+      "id": "blattgemuese",
+      "categoryTagKeywords": ["leafy-vegetable", "spinach", "kale", "lettuce", "spinat", "grünkohl", "feldsalat"],
+      "category": "guenstig"
+    },
+    {
+      "id": "milchprodukte",
+      "categoryTagKeywords": ["dair", "milk", "chees", "yogurt", "milch", "käse", "joghurt", "quark"],
+      "category": "guenstig"
+    },
+    {
+      "id": "eier",
+      "categoryTagKeywords": ["egg", "eier", "hühnerei"],
+      "category": "neutral"
+    },
+    {
+      "id": "obst-gemuese-allgemein",
+      "categoryTagKeywords": ["fruit", "vegetable"],
+      "category": "neutral"
+    },
+    {
+      "id": "walnuesse",
+      "categoryTagKeywords": ["walnut", "walnuss", "walnüsse"],
+      "category": "neutral",
+      "isWalnut": true
+    },
+    {
+      "id": "sonnenblumenkerne",
+      "categoryTagKeywords": ["sunflower-seed", "sonnenblumenkern"],
+      "category": "unguenstig"
+    },
+    {
+      "id": "mandeln",
+      "categoryTagKeywords": ["almond", "mandel"],
+      "category": "unguenstig"
+    },
+    {
+      "id": "cashewkerne",
+      "categoryTagKeywords": ["cashew", "cashewkern"],
+      "category": "unguenstig"
+    },
+    {
+      "id": "erdnuesse",
+      "categoryTagKeywords": ["peanut", "erdnuss", "erdnüsse"],
+      "category": "unguenstig"
+    },
+    {
+      "id": "tofu-verarbeitet",
+      "categoryTagKeywords": ["tofu"],
+      "category": "unguenstig"
+    },
+    {
+      "id": "wurstwaren-fleischersatz",
+      "categoryTagKeywords": ["sausage", "cold-cut", "meat-substitut", "wurst", "salami"],
+      "category": "unguenstig"
+    }
+  ]
+}
