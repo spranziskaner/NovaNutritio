@@ -44,19 +44,3 @@ export async function searchLocalOffDump(query: string): Promise<RemoteFood[]> {
   }
   return rankByFuzzyMatch(query, entries, (f) => `${f.name} ${f.brand ?? ''}`, DUMP_MATCH_THRESHOLD, false)
 }
-
-/**
- * Sucht ein Produkt anhand seines EAN/UPC-Barcodes im lokalen Offline-Subset
- * (z. B. nach einem Kamera-Scan). Ersetzt die frühere Live-Abfrage der
- * Open-Food-Facts-API – funktioniert nur für die ~20.000 im Subset
- * enthaltenen Produkte.
- */
-export async function getLocalOffByBarcode(barcode: string): Promise<RemoteFood | null> {
-  let entries: RemoteFood[]
-  try {
-    entries = await loadDump()
-  } catch {
-    return null
-  }
-  return entries.find((f) => f.barcode === barcode) ?? null
-}

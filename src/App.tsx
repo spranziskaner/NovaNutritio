@@ -1,34 +1,24 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import type { FoodCategory, NovaGroup, RemoteFood } from './types'
+import { useEffect, useRef, useState } from 'react'
+import type { RemoteFood } from './types'
 import { Filters } from './components/Filters'
 import { FoodListItem } from './components/FoodListItem'
 import { FoodDetail } from './components/FoodDetail'
 import { AboutSection } from './components/AboutSection'
 import { searchFoods } from './lib/search'
 import { listLocalFoods } from './lib/localFoodSearch'
-import { getLocalOffByBarcode } from './lib/localOffDump'
-
-// Zieht die vergleichsweise große ZXing-Scan-Bibliothek erst nach, wenn der
-// Scanner tatsächlich geöffnet wird, statt sie in jedes initiale Laden der
-// App einzurechnen.
-const BarcodeScanner = lazy(() => import('./components/BarcodeScanner').then((m) => ({ default: m.BarcodeScanner })))
 
 const SEARCH_DEBOUNCE_MS = 300
 const MIN_QUERY_LENGTH = 2
 
-const canScan = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
-
 function App() {
   const [query, setQuery] = useState('')
-  const [category, setCategory] = useState<FoodCategory | 'alle'>('alle')
-  const [nova, setNova] = useState<NovaGroup | 'alle'>('alle')
   // null = keine Suchanfrage aktiv, der lokale Grundbestand wird angezeigt.
   const [searchResults, setSearchResults] = useState<RemoteFood[] | null>(null)
-  const [scannedFood, setScannedFood] = useState<RemoteFood | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [notice, setNotice] = useState<string | null>(null)
-  const [scannerOpen, setScannerOpen] = useState(false)
+  // Steuert auf schmalen Bildschirmen, ob Liste oder Detailansicht sichtbar
+  // ist (auf breiten Bildschirmen stehen beide immer nebeneinander).
+  const [mobileView, setMobileView] = useState<'liste' | 'detail'>('liste')
   // Verwirft die Antwort einer überholten Suchanfrage, falls eine neuere
   // schneller zurückkommt (z. B. weil der Offline-Datensatz erst geladen
   // werden musste).
@@ -45,7 +35,6 @@ function App() {
     const timer = setTimeout(() => {
       const requestId = ++requestIdRef.current
       setLoading(true)
-      setNotice(null)
       searchFoods(trimmed)
         .then((foods) => {
           if (requestIdRef.current !== requestId) return
@@ -60,32 +49,18 @@ function App() {
     return () => clearTimeout(timer)
   }, [query])
 
-  async function handleBarcode(barcode: string) {
-    setScannerOpen(false)
-    setLoading(true)
-    setNotice(null)
-    try {
-      const food = await getLocalOffByBarcode(barcode)
-      if (!food) {
-        setNotice(`Kein Produkt mit Barcode ${barcode} im lokalen Datensatz gefunden.`)
-        return
-      }
-      setScannedFood(food)
-      setSelectedId(food.id)
-    } finally {
-      setLoading(false)
-    }
+  function handleQueryChange(value: string) {
+    setQuery(value)
+    setMobileView('liste')
+  }
+
+  function handleSelect(id: string) {
+    setSelectedId(id)
+    setMobileView('detail')
   }
 
   const trimmedQuery = query.trim()
-  const baseResults = trimmedQuery.length < MIN_QUERY_LENGTH ? listLocalFoods() : (searchResults ?? [])
-  const results = scannedFood ? [scannedFood, ...baseResults.filter((f) => f.id !== scannedFood.id)] : baseResults
-
-  const filtered = results.filter((f) => {
-    if (category !== 'alle' && f.category !== category) return false
-    if (nova !== 'alle' && f.nova !== nova) return false
-    return true
-  })
+  const filtered = trimmedQuery.length < MIN_QUERY_LENGTH ? listLocalFoods() : (searchResults ?? [])
 
   const selected = filtered.find((f) => f.id === selectedId) ?? filtered[0]
 
@@ -119,43 +94,16 @@ function App() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,22rem)_1fr]">
-          <div className="space-y-4">
-            <Filters
-              query={query}
-              onQueryChange={setQuery}
-              category={category}
-              onCategoryChange={setCategory}
-              nova={nova}
-              onNovaChange={setNova}
-              canScan={canScan}
-              onScanClick={() => setScannerOpen(true)}
-              onBarcodeSubmit={handleBarcode}
-            />
+          <div className={`space-y-4 ${mobileView === 'detail' ? 'hidden lg:block' : ''}`}>
+            <Filters query={query} onQueryChange={handleQueryChange} />
 
-            {scannerOpen && (
-              <Suspense
-                fallback={
-                  <p className="rounded-xl border border-dashed border-stone-300 px-4 py-3 text-center text-sm text-stone-500 dark:border-stone-700 dark:text-stone-400">
-                    Scanner wird geladen …
-                  </p>
-                }
-              >
-                <BarcodeScanner onDetected={handleBarcode} onClose={() => setScannerOpen(false)} />
-              </Suspense>
-            )}
-
-            <div className="max-h-[65vh] space-y-2 overflow-y-auto pr-1 lg:max-h-[70vh]">
+            <div className="space-y-2">
               {loading && (
                 <p className="rounded-xl border border-dashed border-stone-300 px-4 py-6 text-center text-sm text-stone-500 dark:border-stone-700 dark:text-stone-400">
                   Suche läuft …
                 </p>
               )}
-              {!loading && notice && (
-                <p className="rounded-xl border border-dashed border-amber-300 px-4 py-6 text-center text-sm text-amber-700 dark:border-amber-800 dark:text-amber-400">
-                  {notice}
-                </p>
-              )}
-              {!loading && !notice && filtered.length === 0 && (
+              {!loading && filtered.length === 0 && (
                 <p className="rounded-xl border border-dashed border-stone-300 px-4 py-6 text-center text-sm text-stone-500 dark:border-stone-700 dark:text-stone-400">
                   Kein Lebensmittel gefunden.
                 </p>
@@ -166,13 +114,26 @@ function App() {
                     key={f.id}
                     food={f}
                     active={f.id === selected?.id}
-                    onSelect={() => setSelectedId(f.id)}
+                    onSelect={() => handleSelect(f.id)}
                   />
                 ))}
             </div>
           </div>
 
-          <div>{selected && <FoodDetail food={selected} />}</div>
+          <div className={mobileView === 'detail' ? 'block' : 'hidden lg:block'}>
+            {selected && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setMobileView('liste')}
+                  className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-stone-600 hover:text-stone-900 lg:hidden dark:text-stone-400 dark:hover:text-stone-100"
+                >
+                  ← Zurück zur Liste
+                </button>
+                <FoodDetail food={selected} />
+              </>
+            )}
+          </div>
         </div>
       </main>
 
