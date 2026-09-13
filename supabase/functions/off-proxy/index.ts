@@ -40,9 +40,25 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const upstreamUrl = `${OFF_ORIGIN}${upstreamPathFor(url)}${url.search}`;
 
-  const upstreamResponse = await fetch(upstreamUrl, {
-    headers: { "User-Agent": "NovaNutritio (Supabase Edge Function off-proxy)" },
-  });
+  // Wichtig: fetch() zu world.openfoodfacts.org kann selbst fehlschlagen
+  // (Timeout, DNS, Verbindungsabbruch) – ohne try/catch würde das hier als
+  // unbehandelte Exception durchschlagen. Supabase liefert dafür eine
+  // Fehlerantwort OHNE die CORS_HEADERS unten, weil die nur im normalen
+  // Rückgabepfad gesetzt werden. Der Browser (v. a. Safari) verwirft eine
+  // solche Antwort dann komplett als Netzwerkfehler ("Load failed" statt
+  // einer auswertbaren Fehlermeldung) statt sie als HTTP-Fehler zu behandeln.
+  let upstreamResponse: Response;
+  try {
+    upstreamResponse = await fetch(upstreamUrl, {
+      headers: { "User-Agent": "NovaNutritio (Supabase Edge Function off-proxy)" },
+    });
+  } catch (err) {
+    console.error("off-proxy: Upstream-Request fehlgeschlagen", upstreamUrl, err);
+    return new Response(JSON.stringify({ error: "upstream_unreachable" }), {
+      status: 502,
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    });
+  }
 
   const body = await upstreamResponse.arrayBuffer();
   return new Response(body, {
