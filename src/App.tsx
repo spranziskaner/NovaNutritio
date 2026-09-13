@@ -18,6 +18,7 @@ function App() {
   // Vollständige Bewertung (GI/GL/NOVA/Omega) wird erst nachgeladen, wenn ein
   // Treffer ausgewählt wird – die Suche selbst liefert nur Anzeigefelder.
   const [detail, setDetail] = useState<RemoteFood | null>(null)
+  const [detailError, setDetailError] = useState<string | null>(null)
   const [searchLoading, setSearchLoading] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
   // Steuert auf schmalen Bildschirmen, ob Liste oder Detailansicht sichtbar
@@ -65,12 +66,14 @@ function App() {
     if (!selectedId) {
       detailRequestIdRef.current++
       setDetail(null)
+      setDetailError(null)
       setDetailLoading(false)
       return
     }
 
     const requestId = ++detailRequestIdRef.current
     setDetail(null)
+    setDetailError(null)
     setDetailLoading(true)
     loadFoodDetail(selectedId)
       .then((food) => {
@@ -81,6 +84,7 @@ function App() {
         if (detailRequestIdRef.current !== requestId) return
         console.error('Produktdetails laden fehlgeschlagen:', err)
         setDetail(null)
+        setDetailError(err instanceof Error ? err.message : 'Produktdetails konnten nicht geladen werden.')
       })
       .finally(() => {
         if (detailRequestIdRef.current === requestId) setDetailLoading(false)
@@ -177,8 +181,8 @@ function App() {
             )}
             {!detailLoading && detail && <FoodDetail food={detail} />}
             {!detailLoading && !detail && selectedId && (
-              <p className="rounded-xl border border-dashed border-stone-300 px-4 py-6 text-center text-sm text-stone-500 dark:border-stone-700 dark:text-stone-400">
-                Produktdetails konnten nicht geladen werden.
+              <p className="rounded-xl border border-dashed border-rose-300 px-4 py-6 text-center text-sm text-rose-600 dark:border-rose-800 dark:text-rose-400">
+                {detailError ?? 'Produktdetails konnten nicht geladen werden.'}
               </p>
             )}
           </div>

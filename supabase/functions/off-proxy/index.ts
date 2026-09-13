@@ -50,6 +50,10 @@ Deno.serve(async (req) => {
     headers: {
       ...CORS_HEADERS,
       "Content-Type": upstreamResponse.headers.get("Content-Type") ?? "application/json",
+      // Explizit statt dem Runtime-Default überlassen: der openapi-fetch-
+      // Client im Frontend behandelt eine fehlende/falsche Content-Length
+      // bei leerem Body als Sonderfall (kein Fehler, aber auch keine Daten).
+      "Content-Length": String(body.byteLength),
     },
   });
 });

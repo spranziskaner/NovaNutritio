@@ -22,12 +22,27 @@ const PRODUCT_FIELDS = [
  * Omega-Bewertung. Wird bewusst erst aufgerufen, wenn ein Suchtreffer
  * ausgewählt wird – nicht für jeden Eintrag der Trefferliste –, um pro
  * Tastendruck nicht unnötig viele Detail-Anfragen auszulösen.
+ *
+ * Wirft statt still `null` zurückzugeben gezielte Fehler – damit App.tsx die
+ * tatsächliche Ursache anzeigen kann (Request fehlgeschlagen / Produkt
+ * unbekannt / Nährwertangaben unvollständig), statt immer dieselbe generische
+ * Meldung.
  */
-export async function loadFoodDetail(barcode: string): Promise<RemoteFood | null> {
-  const { data } = await off.getProductV3(barcode, { fields: [...PRODUCT_FIELDS] })
-  if (!data || data.status === 'failure' || !('product' in data)) return null
+export async function loadFoodDetail(barcode: string): Promise<RemoteFood> {
+  const { data, error } = await off.getProductV3(barcode, { fields: [...PRODUCT_FIELDS] })
+  if (error !== undefined) {
+    console.error('Produktabruf: Fehlerantwort von Open Food Facts', error)
+    throw new Error('Anfrage an Open Food Facts fehlgeschlagen.')
+  }
+  if (!data || data.status === 'failure' || !('product' in data)) {
+    throw new Error('Produkt nicht in der Open-Food-Facts-Datenbank gefunden.')
+  }
 
   // Siehe Kommentar an `OffProductV3`: bewusste Entkopplung von den
   // generierten, feldabhängigen SDK-Typen.
-  return mapOffProduct(data.product as unknown as OffProductV3)
+  const food = mapOffProduct(data.product as unknown as OffProductV3)
+  if (!food) {
+    throw new Error('Open Food Facts liefert für dieses Produkt keine vollständigen Nährwertangaben.')
+  }
+  return food
 }
