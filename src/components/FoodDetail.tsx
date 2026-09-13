@@ -42,7 +42,12 @@ export function FoodDetail({ food }: { food: RemoteFood }) {
             <h2 className="font-serif text-2xl font-semibold text-stone-900 dark:text-stone-50">{food.name}</h2>
           </div>
         </div>
-        <WeightSetPointBadge signal={a.signal} headline={a.headline} incomplete={a.signalIncomplete} />
+        <WeightSetPointBadge
+          signal={a.signal}
+          headline={a.headline}
+          incomplete={a.signalIncomplete}
+          compositeScore={a.compositeScore}
+        />
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">

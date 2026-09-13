@@ -54,8 +54,10 @@ export interface AssessableFood {
   gi: number | null
   portionG: number
   carbsPer100g: number
+  sugarPer100g?: number
   fiberPer100g?: number
   proteinPer100g?: number
+  fatPer100g?: number
   /** null = von Open Food Facts nicht klassifiziert. */
   nova: NovaGroup | null
   omega: OmegaAssessment
@@ -89,8 +91,6 @@ export interface RemoteFood extends AssessableFood {
   category: FoodCategory
   imageUrl?: string
   giSource: GiSource
-  sugarPer100g?: number
-  fatPer100g?: number
   /** Kurzbegründung für die NOVA-Einstufung bzw. Hinweis, dass sie fehlt. */
   novaNote: string
 }

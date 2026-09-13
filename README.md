@@ -8,15 +8,26 @@ nach der NOVA-Klassifikation und die Omega-6/3-Einordnung an und leitet daraus e
 Weight-Set-Point-Signal ab, wie gut ein Lebensmittel zum Weight-Set-Point-Konzept von
 Dr. Andrew Jenkinson passt.
 
-**Scoring-Rangfolge** (`src/lib/assessment.ts`): (1) NOVA 4 (ultra-verarbeitet) ist ein
-Basis-Filter und macht ein Lebensmittel unabhängig von GI/GL "ungünstig". (2) Sonst
-entscheidet die GL der tatsächlichen Portion über die Basis-Einstufung – der GI spielt nur
-eine Nebenrolle (Fallback, wenn keine GL berechenbar ist): entscheidend ist laut Jenkinson
-die insgesamt freigesetzte Glukosemenge, nicht deren Geschwindigkeit. (3) Ballaststoffe
-(ab 3 g/100 g, EU-Schwelle für "Ballaststoffquelle") dämpfen eine hohe GL um eine Stufe,
-statt sie bei niedrigem Gehalt zusätzlich zu verschärfen. (4) Ein ungünstiges Omega-6/3-
-Verhältnis verschlechtert die Einstufung um eine Stufe; ein unbekanntes (der Normalfall bei
-Getreide ohne relevante Fettquelle) fließt nicht negativ ein.
+**Scoring** (`src/lib/assessment.ts`): ein gewichteter Composite-Score aus fünf Faktoren
+statt eines Einzelfaktor-Triggers – Jenkinson beschreibt den Sollwert-Effekt als
+Zusammenspiel mehrerer Mechanismen, nicht als Ergebnis eines einzelnen "schlechten" Werts.
+
+| Faktor | Gewicht | Logik |
+|---|---|---|
+| NOVA-Gruppe | 35 % | NOVA 1–2 = Plus, NOVA 4 (ultra-verarbeitet) = stärkstes Minus |
+| Glykämische Last (Portion) | 30 % | voll negativ nur bei GI hoch **und** Ballaststoffe niedrig; sonst gemildert (schnelle Insulinspitze bleibt aus) |
+| Zuckeranteil | 15 % | ≤5 g/100 g günstig, ≥22,5 g/100 g ungünstig (Ampel-Grenzwerte) |
+| Omega-6/3 | 15 % | zählt nur bei Fettanteil >5 g/100 g, sonst neutral |
+| Protein-/Ballaststoffdichte | 5 % | reiner Sättigungs-Bonus, nie negativ |
+
+Punkte je Faktor auf einer Skala von -2 bis +2; fehlt ein Faktor (NOVA/GL/Zucker unbekannt),
+wird sein Gewicht auf die bekannten Faktoren umgelegt statt ihn als 0 zu werten. Der
+gewichtete Gesamtscore wird auf eine 5-stufige Skala gebucketet: 🟢🟢 sehr günstig (≥1.2),
+🟢 günstig (≥0.4), ⚪ neutral (>-0.4), 🟡 leicht ungünstig (≥-1.2), 🔴 ungünstig (<-1.2). GL
+selbst bleibt an der Standard-Skala (≤10 niedrig, 11–19 mittel, ≥20 hoch, pro Portion,
+nicht pro 100 g) orientiert; Jenkinsons Plan nennt dazu ein **tägliches** GL-Budget von
+80–150, keine Einzelprodukt-Grenzwerte – jedes Produkt zeigt dazu einen passenden
+Kontext-Hinweis.
 
 ## Datenquelle: Open Food Facts
 

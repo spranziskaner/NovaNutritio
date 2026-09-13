@@ -14,33 +14,59 @@ export function AboutSection() {
         </p>
         <p>
           Das <strong className="text-stone-800 dark:text-stone-200">Weight-Set-Point-Signal</strong>{' '}
-          folgt dabei einer klaren Rangfolge. Zuerst ein Basis-Filter:{' '}
-          <strong className="text-stone-800 dark:text-stone-200">NOVA 4</strong> (ultra-verarbeitet)
-          macht ein Lebensmittel unabhängig von GI/GL zu „ungünstig" – Zucker,
-          Fruktose-Süßungsmittel und Industrie-Pflanzenöle kommen in unverarbeiteten bis
-          handwerklich verarbeiteten Produkten (NOVA 1–3) praktisch nicht vor. Ist NOVA nicht 4,
-          entscheidet die{' '}
-          <strong className="text-stone-800 dark:text-stone-200">glykämische Last (GL)</strong>{' '}
-          (GI × Kohlenhydratmenge{' '}
-          <strong className="text-stone-800 dark:text-stone-200">der tatsächlichen Portion</strong>{' '}
-          / 100) über die Basis-Einstufung – ab GL 20 pro Portion gilt ein Lebensmittel als
-          ungünstig, ab GL 11 als leicht ungünstig. Der{' '}
-          <strong className="text-stone-800 dark:text-stone-200">glykämische Index (GI)</strong>{' '}
-          spielt dabei nur eine Nebenrolle (Fallback, wenn keine GL berechnet werden kann): nicht
-          die Geschwindigkeit des Blutzuckeranstiegs ist entscheidend, sondern die insgesamt
-          freigesetzte Glukosemenge. Ein hoher{' '}
-          <strong className="text-stone-800 dark:text-stone-200">Ballaststoffgehalt</strong> (ab
-          3&nbsp;g je 100&nbsp;g, EU-Grenzwert für „Ballaststoffquelle") dämpft die
-          GL-Einstufung um eine Stufe – komplexe Kohlenhydrate mit intakter Ballaststoffmatrix
-          setzen ihre Glukose langsamer frei. Ein niedriger Ballaststoffgehalt verschärft die
-          Einstufung dagegen nicht zusätzlich. Die{' '}
-          <strong className="text-stone-800 dark:text-stone-200">Omega-6/3-Einordnung</strong>{' '}
-          bleibt ein reiner Zusatzfaktor: ein ungünstiges Verhältnis verschlechtert die Einstufung
-          um eine Stufe, ein unbekanntes (der Normalfall bei Getreide ohne relevante Fettquelle)
-          fließt gar nicht erst ein. „Günstige Wirkung" bedeutet: keiner dieser Faktoren schlägt an
-          – nicht, dass das Lebensmittel den Sollwert aktiv senkt (das kann ein einzelnes
-          Lebensmittel nicht belegbar). Fehlen GI/GL, NOVA und Omega-6/3 alle drei gleichzeitig,
-          wird bewusst kein Weight-Set-Point-Signal berechnet, sondern „nicht bewertbar" angezeigt.
+          ist ein gewichteter Composite-Score aus fünf Faktoren – Jenkinson beschreibt den
+          Sollwert-Effekt ausdrücklich als Zusammenspiel von Insulin/Leptin, Verarbeitungsgrad und
+          Omega-6/3, nicht als Ergebnis eines einzelnen „schlechten" Werts. Ein einzelner auffälliger
+          Einzelwert reicht daher nie allein für eine ungünstige Gesamteinstufung:
+        </p>
+        <ul className="ml-4 list-disc space-y-1">
+          <li>
+            <strong className="text-stone-800 dark:text-stone-200">NOVA-Gruppe (35&nbsp;%)</strong> –
+            NOVA 1–2 zählt als Plus, NOVA 4 (ultra-verarbeitet, meist mit Zucker,
+            Fruktose-Süßungsmitteln und Industrie-Pflanzenölen) als stärkstes Minus.
+          </li>
+          <li>
+            <strong className="text-stone-800 dark:text-stone-200">
+              Glykämische Last (30&nbsp;%)
+            </strong>{' '}
+            – GI × Kohlenhydratmenge der{' '}
+            <strong className="text-stone-800 dark:text-stone-200">tatsächlichen Portion</strong>{' '}
+            / 100 (ab GL 20 „hoch", ab 11 „mittel"). Eine hohe GL wird nur dann voll negativ
+            gewertet, wenn zusätzlich der GI hoch UND die Ballaststoffe niedrig sind – ist der GI
+            niedriger oder liegen genug Ballaststoffe vor (ab 3&nbsp;g/100&nbsp;g, EU-Grenzwert für
+            „Ballaststoffquelle"), wird dieselbe GL nur noch milde gewertet, da die schnelle
+            Insulinspitze – laut Jenkinson das eigentliche Problem – ausbleibt. Jenkinsons Plan
+            nennt dazu ein <strong className="text-stone-800 dark:text-stone-200">tägliches</strong>{' '}
+            GL-Budget von 80–150, keine Einzelprodukt-Grenzwerte – eine einzelne „hohe" Portion ist
+            also kein Alarmsignal für sich, sondern eine von mehreren, die ins Tagesbudget passen
+            müssen (Kontext-Hinweis dazu bei jedem Produkt).
+          </li>
+          <li>
+            <strong className="text-stone-800 dark:text-stone-200">Zuckeranteil (15&nbsp;%)</strong>{' '}
+            – als direkter Insulin-/Leptin-Faktor: niedrig bis 5&nbsp;g/100&nbsp;g, hoch ab
+            22,5&nbsp;g/100&nbsp;g (etablierte Lebensmittel-Ampel-Grenzwerte).
+          </li>
+          <li>
+            <strong className="text-stone-800 dark:text-stone-200">
+              Omega-6/3-Verhältnis (15&nbsp;%)
+            </strong>{' '}
+            – zählt nur bei relevantem Fettanteil (über 5&nbsp;g/100&nbsp;g), sonst neutral: bei
+            Getreide oder Gemüse ohne nennenswertes Fett wäre eine Bewertung nicht aussagekräftig.
+          </li>
+          <li>
+            <strong className="text-stone-800 dark:text-stone-200">
+              Protein-/Ballaststoffdichte (5&nbsp;%)
+            </strong>{' '}
+            – reiner Bonus (nie negativ): sättigungsfördernd über das PYY-Signal.
+          </li>
+        </ul>
+        <p>
+          Aus dem gewichteten Score (-2 bis +2) ergibt sich eine 5-stufige Einordnung: 🟢🟢 sehr
+          günstig, 🟢 günstig, ⚪ neutral, 🟡 leicht ungünstig, 🔴 ungünstig. „Günstig" bedeutet dabei:
+          die bekannten Faktoren schlagen in Summe positiv aus – nicht, dass das Lebensmittel den
+          Sollwert aktiv senkt (das kann ein einzelnes Lebensmittel nicht belegbar). Fehlt einer der
+          gewichteten Faktoren (NOVA, GL, Zucker), wird sein Gewicht auf die bekannten Faktoren
+          umgelegt, statt die Bewertung zu verweigern.
         </p>
         <p>
           Das <strong className="text-stone-800 dark:text-stone-200">Omega-6/3-Verhältnis</strong>{' '}
